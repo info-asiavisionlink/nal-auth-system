@@ -6,6 +6,20 @@ export type Profile = {
   created_at: string;
 };
 
+export type Tool = {
+  id: string;
+  tool_key: string;
+  tool_name: string;
+  description: string | null;
+  category: string | null;
+  tool_url: string | null;
+  credit_cost: number;
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
 export type UserFavoriteTool = {
   id: string;
   user_id: string;

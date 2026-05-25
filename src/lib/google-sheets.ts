@@ -89,7 +89,13 @@ async function getFirstSheetTitle(
   return data.sheets?.[0]?.properties?.title ?? null;
 }
 
-export async function fetchActiveSystemTools(): Promise<SystemToolsFetchResult> {
+export type SystemToolLookupResult =
+  | { status: "found"; tool: SystemTool }
+  | { status: "inactive"; tool: SystemTool }
+  | { status: "not_found" }
+  | { status: "error"; error: string };
+
+async function fetchParsedSystemTools(): Promise<SystemToolsFetchResult> {
   const apiKey = process.env.GOOGLE_SHEETS_API_KEY;
   const spreadsheetId = process.env.GOOGLE_SHEET_ID;
 
@@ -143,9 +149,7 @@ export async function fetchActiveSystemTools(): Promise<SystemToolsFetchResult> 
     const tools = rows
       .slice(1)
       .map((row) => rowToTool(row, columnIndex))
-      .filter((tool): tool is SystemTool => tool !== null)
-      .filter((tool) => tool.is_active)
-      .sort((a, b) => a.sort_order - b.sort_order);
+      .filter((tool): tool is SystemTool => tool !== null);
 
     return { success: true, tools };
   } catch {
@@ -155,4 +159,45 @@ export async function fetchActiveSystemTools(): Promise<SystemToolsFetchResult> 
         "システム一覧の取得中にエラーが発生しました。時間をおいて再度お試しください。",
     };
   }
+}
+
+export async function fetchActiveSystemTools(): Promise<SystemToolsFetchResult> {
+  const result = await fetchParsedSystemTools();
+  if (!result.success) return result;
+
+  return {
+    success: true,
+    tools: result.tools
+      .filter((tool) => tool.is_active)
+      .sort((a, b) => a.sort_order - b.sort_order),
+  };
+}
+
+export async function findSystemToolById(
+  toolId: string,
+): Promise<SystemToolLookupResult> {
+  const normalizedId = toolId.trim();
+  if (!normalizedId) {
+    return { status: "not_found" };
+  }
+
+  const result = await fetchParsedSystemTools();
+  if (!result.success) {
+    return { status: "error", error: result.error };
+  }
+
+  const tool = result.tools.find((item) => item.tool_id === normalizedId);
+  if (!tool) {
+    return { status: "not_found" };
+  }
+
+  if (!tool.is_active) {
+    return { status: "inactive", tool };
+  }
+
+  return { status: "found", tool };
+}
+
+export function isValidCreditCost(creditCost: number): boolean {
+  return Number.isInteger(creditCost) && creditCost > 0;
 }

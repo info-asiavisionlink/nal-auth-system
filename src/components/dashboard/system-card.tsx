@@ -69,6 +69,10 @@ export function SystemCard({
         <p className="mt-2 line-clamp-3 flex-1 text-sm leading-relaxed text-slate-600">
           {tool.description || "説明はありません。"}
         </p>
+        <p className="mt-3 rounded-lg border border-sky-100 bg-sky-50/70 px-3 py-2 text-xs leading-relaxed text-sky-900">
+          このツールは実行時に {tool.credit_cost.toLocaleString()} Credit 消費
+          （「ツールを開く」では消費されません）
+        </p>
 
         {tool.tags.length > 0 ? (
           <ul className="mt-3 flex flex-wrap gap-1.5">
@@ -105,11 +109,11 @@ export function SystemCard({
               className="w-full"
               onClick={() => window.open(tool.tool_url, "_blank", "noopener,noreferrer")}
             >
-              利用する
+              ツールを開く
             </NeonButton>
           ) : (
             <NeonButton type="button" className="w-full" disabled>
-              利用する
+              ツールを開く
             </NeonButton>
           )}
         </div>

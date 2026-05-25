@@ -18,6 +18,7 @@ nal-auth-system/
 │   └── schema.sql             # DB・RLS 定義
 ├── src/
 │   ├── app/
+│   │   ├── api/credits/       # 残高・消費 API
 │   │   ├── api/checkout/      # 決済 Webhook プロキシ
 │   │   ├── auth/callback/     # メール認証コールバック
 │   │   ├── dashboard/
@@ -60,6 +61,8 @@ npm install
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | 公開（Publishable）キー |
 | `SUPABASE_SERVICE_ROLE_KEY` | service_role（サーバーのみ・クライアント禁止） |
 | `NEXT_PUBLIC_N8N_WEBHOOK_URL` | n8n Webhook URL |
+| `GOOGLE_SHEETS_API_KEY` | Google Sheets API キー（サーバーのみ） |
+| `GOOGLE_SHEET_ID` | システム一覧スプレッドシート ID |
 
 ### 3. Supabase SQL
 
@@ -98,6 +101,106 @@ npm run dev
 | `npm run build` | 本番ビルド |
 | `npm run start` | 本番サーバー起動 |
 | `npm run lint` | ESLint |
+
+## クレジット API（外部ツール連携）
+
+消費クレジットは **`tools` テーブル**で管理します。  
+**`credit_cost` をツール側から送らないでください**（送っても無視します）。  
+サーバーが `tool_key` から `tools.credit_cost` を取得して減算します。
+
+ダッシュボードの「ツールを開く」ではクレジットは減りません。  
+各ツールは**処理実行直前**にのみ API を呼び出してください。
+
+### Supabase SQL（必須）
+
+Supabase SQL Editor で **`supabase/credits-schema.sql`** を実行してください。
+
+- `tools` テーブル（`google_map_leads` 初期データ含む）
+- `tool_usage_logs` 拡張（`external_request_id` 等）
+- `consume_credit_by_tool_key` RPC
+
+### 正規エンドポイント
+
+#### `GET /api/credits/balance`
+
+ログイン中ユーザーの残高。
+
+```json
+{ "status": "success", "credit": 120 }
+```
+
+#### `POST /api/credits/consume`
+
+```json
+{
+  "tool_key": "google_map_leads",
+  "external_request_id": "google-map側のsearch_request_id"
+}
+```
+
+成功:
+
+```json
+{
+  "status": "success",
+  "tool_key": "google_map_leads",
+  "credit_cost": 30,
+  "credit_before": 120,
+  "credit_after": 90
+}
+```
+
+残高不足（402）:
+
+```json
+{
+  "status": "insufficient_credit",
+  "message": "クレジットが不足しています。",
+  "required_credit": 30,
+  "current_credit": 10
+}
+```
+
+### Googleマップツール側の呼び出し例
+
+```javascript
+const DASHBOARD_ORIGIN = "https://あなたの共通ダッシュボードURL";
+
+const consumeRes = await fetch(`${DASHBOARD_ORIGIN}/api/credits/consume`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  credentials: "include",
+  body: JSON.stringify({
+    tool_key: "google_map_leads",
+    external_request_id: searchRequestId,
+  }),
+});
+
+const result = await consumeRes.json();
+
+if (result.status === "success") {
+  await runGoogleMapSearch();
+} else {
+  alert(result.message);
+}
+```
+
+`credentials: "include"` で Supabase Auth のセッション Cookie を送信します。  
+**パスワード・service_role キーは送らないでください。**
+
+### 互換エンドポイント
+
+`POST /api/tools/consume-credit` は互換用です。内部で `/api/credits/consume` と同じ処理を行います。  
+新規実装は `/api/credits/consume` を使用してください。
+
+### 改ざん防止
+
+| 項目 | 方針 |
+|------|------|
+| `credit_cost` | クライアントから受け取らない。`tools` テーブルのみ信頼 |
+| `tool_key` | ツール側が送信。サーバーで `tools` を検索 |
+| 減算 | `consume_credit_by_tool_key` RPC（`FOR UPDATE` + 条件付き UPDATE） |
+| 二重消費 | `external_request_id` がある場合、同一 user + tool_key + id の成功履歴を拒否 |
 
 ## n8n / Stripe 連携
 
