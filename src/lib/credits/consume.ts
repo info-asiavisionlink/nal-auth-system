@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
+import type { ResolvedAuth } from "@/lib/api-auth";
+import { resolveApiAuth } from "@/lib/api-auth";
+import { createAdminClient } from "@/lib/supabase-admin";
+import { createServerSupabaseClient } from "@/lib/supabase-server";
 import {
-  fetchToolByKey,
+  fetchToolByKeyAdmin,
   isValidToolCreditCost,
 } from "@/lib/tools-db";
-import { createServerSupabaseClient } from "@/lib/supabase-server";
 
 export type ConsumeCreditsBody = {
   tool_key?: string;
@@ -19,15 +22,15 @@ type RpcConsumeResult = {
   error: string | null;
 };
 
-async function logToolInactive(
+async function logToolInactiveAdmin(
   userId: string,
   toolKey: string,
   toolName: string,
   creditCost: number,
   externalRequestId: string | null,
 ) {
-  const supabase = await createServerSupabaseClient();
-  await supabase.from("tool_usage_logs").insert({
+  const admin = createAdminClient();
+  await admin.from("tool_usage_logs").insert({
     user_id: userId,
     tool_key: toolKey,
     tool_name: toolName,
@@ -40,15 +43,48 @@ async function logToolInactive(
   });
 }
 
+async function runConsumeRpc(
+  auth: ResolvedAuth,
+  userId: string,
+  toolKey: string,
+  toolName: string,
+  creditCost: number,
+  externalRequestId: string | null,
+): Promise<{ result: RpcConsumeResult | null; rpcError: boolean }> {
+  const params = {
+    p_user_id: userId,
+    p_tool_key: toolKey,
+    p_tool_name: toolName,
+    p_credit_cost: creditCost,
+    p_external_request_id: externalRequestId,
+  };
+
+  if (auth.type === "bearer") {
+    const admin = createAdminClient();
+    const { data, error } = await admin.rpc("consume_credit_for_user", params);
+    if (error) {
+      return { result: null, rpcError: true };
+    }
+    const result = (Array.isArray(data) ? data[0] : data) as RpcConsumeResult;
+    return { result, rpcError: false };
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase.rpc("consume_credit_by_tool_key", params);
+  if (error) {
+    return { result: null, rpcError: true };
+  }
+  const result = (Array.isArray(data) ? data[0] : data) as RpcConsumeResult;
+  return { result, rpcError: false };
+}
+
 export async function handleConsumeCredits(
+  request: Request,
   body: ConsumeCreditsBody,
 ): Promise<NextResponse> {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const auth = await resolveApiAuth(request);
 
-  if (!user) {
+  if (!auth) {
     return NextResponse.json(
       {
         status: "unauthorized",
@@ -71,7 +107,18 @@ export async function handleConsumeCredits(
     );
   }
 
-  const tool = await fetchToolByKey(toolKey);
+  if (auth.type === "bearer" && auth.toolKey !== toolKey) {
+    return NextResponse.json(
+      {
+        status: "error",
+        error: "TOOL_TOKEN_MISMATCH",
+        message: "このトークンでは対象ツールを利用できません。",
+      },
+      { status: 403 },
+    );
+  }
+
+  const tool = await fetchToolByKeyAdmin(toolKey);
 
   if (!tool) {
     return NextResponse.json(
@@ -84,8 +131,8 @@ export async function handleConsumeCredits(
   }
 
   if (!tool.is_active) {
-    await logToolInactive(
-      user.id,
+    await logToolInactiveAdmin(
+      auth.userId,
       tool.tool_key,
       tool.tool_name,
       tool.credit_cost,
@@ -112,36 +159,20 @@ export async function handleConsumeCredits(
     );
   }
 
-  const { data, error: rpcError } = await supabase.rpc(
-    "consume_credit_by_tool_key",
-    {
-      p_user_id: user.id,
-      p_tool_key: tool.tool_key,
-      p_tool_name: tool.tool_name,
-      p_credit_cost: creditCost,
-      p_external_request_id: externalRequestId,
-    },
+  const { result, rpcError } = await runConsumeRpc(
+    auth,
+    auth.userId,
+    tool.tool_key,
+    tool.tool_name,
+    creditCost,
+    externalRequestId,
   );
 
-  if (rpcError) {
+  if (rpcError || !result) {
     return NextResponse.json(
       {
         status: "error",
         message: "クレジット消費に失敗しました。時間をおいて再度お試しください。",
-      },
-      { status: 500 },
-    );
-  }
-
-  const result = (Array.isArray(data) ? data[0] : data) as
-    | RpcConsumeResult
-    | undefined;
-
-  if (!result) {
-    return NextResponse.json(
-      {
-        status: "error",
-        message: "クレジット消費に失敗しました。",
       },
       { status: 500 },
     );

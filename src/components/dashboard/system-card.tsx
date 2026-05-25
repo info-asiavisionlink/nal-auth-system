@@ -19,7 +19,42 @@ export function SystemCard({
   onToggleFavorite,
 }: SystemCardProps) {
   const [imageError, setImageError] = useState(false);
+  const [opening, setOpening] = useState(false);
+  const [openError, setOpenError] = useState<string | null>(null);
   const showImage = Boolean(tool.image_url) && !imageError;
+
+  async function handleOpenTool() {
+    if (opening || !tool.tool_url) return;
+
+    setOpening(true);
+    setOpenError(null);
+
+    try {
+      const response = await fetch("/api/tools/open", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tool_key: tool.tool_id }),
+      });
+
+      const data = (await response.json()) as {
+        success?: boolean;
+        url?: string;
+        message?: string;
+      };
+
+      if (!response.ok || !data.success || !data.url) {
+        setOpenError(data.message ?? "ツールの起動に失敗しました。");
+        return;
+      }
+
+      window.location.href = data.url;
+    } catch {
+      setOpenError("通信エラーが発生しました。時間をおいて再度お試しください。");
+    } finally {
+      setOpening(false);
+    }
+  }
 
   return (
     <article className="group flex h-full min-w-0 flex-col rounded-2xl border border-sky-100/80 bg-white/95 p-4 shadow-md shadow-sky-100/40 transition duration-200 hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-lg hover:shadow-sky-200/50 sm:p-5">
@@ -71,7 +106,7 @@ export function SystemCard({
         </p>
         <p className="mt-3 rounded-lg border border-sky-100 bg-sky-50/70 px-3 py-2 text-xs leading-relaxed text-sky-900">
           このツールは実行時に {tool.credit_cost.toLocaleString()} Credit 消費
-          （「ツールを開く」では消費されません）
+          （表示は Sheets・実消費はサーバー設定。「ツールを開く」では消費されません）
         </p>
 
         {tool.tags.length > 0 ? (
@@ -85,6 +120,15 @@ export function SystemCard({
               </li>
             ))}
           </ul>
+        ) : null}
+
+        {openError ? (
+          <p
+            className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700"
+            role="alert"
+          >
+            {openError}
+          </p>
         ) : null}
 
         <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -107,9 +151,11 @@ export function SystemCard({
             <NeonButton
               type="button"
               className="w-full"
-              onClick={() => window.open(tool.tool_url, "_blank", "noopener,noreferrer")}
+              loading={opening}
+              disabled={opening}
+              onClick={handleOpenTool}
             >
-              ツールを開く
+              {opening ? "起動中..." : "ツールを開く"}
             </NeonButton>
           ) : (
             <NeonButton type="button" className="w-full" disabled>

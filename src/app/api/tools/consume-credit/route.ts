@@ -3,19 +3,17 @@ import { handleConsumeCredits } from "@/lib/credits/consume";
 
 /**
  * 互換ルート。正規は POST /api/credits/consume
- * body: { toolId } または { tool_key, external_request_id }
  */
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as ConsumeCreditsBody;
-    const response = await handleConsumeCredits(body);
+    const response = await handleConsumeCredits(request, body);
     const payload = await response.json();
 
     if (payload.status === "success") {
       return Response.json({
         success: true,
         toolId: payload.tool_key,
-        toolName: undefined,
         creditCost: payload.credit_cost,
         creditBefore: payload.credit_before,
         creditAfter: payload.credit_after,
@@ -43,6 +41,17 @@ export async function POST(request: Request) {
           message: payload.message,
         },
         { status: 401 },
+      );
+    }
+
+    if (payload.error === "TOOL_TOKEN_MISMATCH") {
+      return Response.json(
+        {
+          success: false,
+          error: "TOOL_TOKEN_MISMATCH",
+          message: payload.message,
+        },
+        { status: 403 },
       );
     }
 

@@ -1,50 +1,23 @@
-import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { corsPreflightResponse, withCors } from "@/lib/api-cors";
+import { handleCreditsBalance } from "@/lib/credits/balance";
 
-export async function GET() {
+export async function OPTIONS(request: Request) {
+  const preflight = corsPreflightResponse(request);
+  return preflight ?? new Response(null, { status: 204 });
+}
+
+export async function GET(request: Request) {
   try {
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          status: "unauthorized",
-          message: "ログインが必要です。",
-        },
-        { status: 401 },
-      );
-    }
-
-    const { data: profile, error } = await supabase
-      .from("profiles")
-      .select("credit")
-      .eq("id", user.id)
-      .single();
-
-    if (error || !profile) {
-      return NextResponse.json(
-        {
-          status: "error",
-          message: "クレジット残高の取得に失敗しました。",
-        },
-        { status: 500 },
-      );
-    }
-
-    return NextResponse.json({
-      status: "success",
-      credit: profile.credit ?? 0,
-    });
+    const response = await handleCreditsBalance(request);
+    return withCors(request, response);
   } catch {
-    return NextResponse.json(
+    const response = Response.json(
       {
         status: "error",
         message: "サーバーエラーが発生しました。",
       },
       { status: 500 },
     );
+    return withCors(request, response);
   }
 }
