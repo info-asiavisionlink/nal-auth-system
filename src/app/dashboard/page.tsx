@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
+import { SystemLibraryLoading } from "@/components/dashboard/system-library-loading";
+import { SystemLibraryServer } from "@/components/dashboard/system-library-server";
 import { isEmailConfirmed } from "@/lib/auth-email";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import type { Profile } from "@/types/database";
@@ -31,5 +34,14 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  return <DashboardClient profile={profile} />;
+  return (
+    <DashboardClient
+      profile={profile}
+      systemLibrary={
+        <Suspense fallback={<SystemLibraryLoading />}>
+          <SystemLibraryServer userId={user.id} />
+        </Suspense>
+      }
+    />
+  );
 }

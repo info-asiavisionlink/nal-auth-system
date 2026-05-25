@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { CreditModal } from "@/components/dashboard/CreditModal";
 import { PasswordField } from "@/components/dashboard/PasswordField";
@@ -11,6 +12,7 @@ import type { Profile } from "@/types/database";
 
 type DashboardClientProps = {
   profile: Profile;
+  systemLibrary?: ReactNode;
 };
 
 function UserInfoCell({
@@ -32,7 +34,10 @@ function UserInfoCell({
   );
 }
 
-export function DashboardClient({ profile }: DashboardClientProps) {
+export function DashboardClient({
+  profile,
+  systemLibrary,
+}: DashboardClientProps) {
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -62,7 +67,7 @@ export function DashboardClient({ profile }: DashboardClientProps) {
         aria-hidden
       />
 
-      <div className="relative z-10 mx-auto w-full min-w-0 max-w-3xl box-border px-4 py-8 sm:px-6 sm:py-12">
+      <div className="relative z-10 mx-auto w-full min-w-0 max-w-7xl box-border px-4 py-8 sm:px-6 sm:py-12">
         <header className="mb-8 flex min-w-0 flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 text-center sm:text-left">
             <p className="accent-heading text-xs font-semibold uppercase tracking-[0.2em]">
@@ -95,7 +100,7 @@ export function DashboardClient({ profile }: DashboardClientProps) {
           </div>
         </section>
 
-        <section className="glass-panel w-full min-w-0 max-w-full p-5 sm:p-8">
+        <section className="glass-panel mb-6 w-full min-w-0 max-w-full p-5 sm:p-8">
           <div className="flex min-w-0 flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 text-center sm:text-left">
               <p className="text-xs font-semibold uppercase tracking-wider text-sky-600">
@@ -115,6 +120,8 @@ export function DashboardClient({ profile }: DashboardClientProps) {
             </NeonButton>
           </div>
         </section>
+
+        {systemLibrary}
       </div>
 
       <CreditModal open={modalOpen} onClose={() => setModalOpen(false)} />
