@@ -16,19 +16,12 @@ export function InputField({
 
   return (
     <div className="space-y-2">
-      <label
-        htmlFor={inputId}
-        className="block text-sm font-medium tracking-wide text-cyan-100/90"
-      >
+      <label htmlFor={inputId} className="input-label">
         {label}
       </label>
-      <input
-        id={inputId}
-        className={`neon-ring w-full rounded-lg border border-cyan-500/25 bg-black/40 px-4 py-3 text-sm text-white placeholder:text-slate-500 transition focus:border-cyan-400/60 ${className}`}
-        {...props}
-      />
+      <input id={inputId} className={`input-base ${className}`} {...props} />
       {error ? (
-        <p className="text-xs text-rose-400" role="alert">
+        <p className="text-xs text-rose-600" role="alert">
           {error}
         </p>
       ) : null}

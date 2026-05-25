@@ -7,22 +7,22 @@ type CheckoutErrorPanelProps = {
 export function CheckoutErrorPanel({ error }: CheckoutErrorPanelProps) {
   return (
     <div
-      className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200"
+      className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
       role="alert"
     >
-      <p className="font-semibold text-rose-100">{error.title}</p>
-      <p className="mt-3 text-xs font-medium uppercase tracking-wide text-rose-300/80">
+      <p className="font-semibold text-rose-900">{error.title}</p>
+      <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-rose-700">
         原因
       </p>
-      <p className="mt-1 whitespace-pre-wrap font-mono text-xs text-rose-200">
+      <p className="mt-1 whitespace-pre-wrap font-mono text-xs text-rose-800">
         {error.cause}
       </p>
       {error.details ? (
         <>
-          <p className="mt-3 text-xs font-medium uppercase tracking-wide text-rose-300/80">
+          <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-rose-700">
             詳細
           </p>
-          <p className="mt-1 whitespace-pre-wrap font-mono text-xs text-rose-200/90">
+          <p className="mt-1 whitespace-pre-wrap font-mono text-xs text-rose-700">
             {error.details}
           </p>
         </>

@@ -1,18 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --background: #030308;
-  --foreground: #e8f4ff;
-  --neon-blue: #00d4ff;
-  --neon-blue-dim: #0ea5e9;
-  --glass-border: rgba(0, 212, 255, 0.25);
-  --glass-bg: rgba(8, 16, 32, 0.55);
+  --background: #f8fcff;
+  --foreground: #1e293b;
+  --accent-cyan: #0ea5e9;
+  --accent-cyan-light: #38bdf8;
+  --accent-yellow: #eab308;
+  --accent-yellow-light: #fde047;
+  --card-bg: #ffffff;
+  --card-border: rgba(14, 165, 233, 0.22);
+  --input-bg: #ffffff;
+  --input-border: rgba(14, 165, 233, 0.35);
+  --muted: #64748b;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-neon: var(--neon-blue);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -21,30 +25,67 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 .cyber-grid {
-  background-image:
-    linear-gradient(rgba(0, 212, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 212, 255, 0.04) 1px, transparent 1px);
-  background-size: 48px 48px;
+  background: linear-gradient(
+    165deg,
+    #ffffff 0%,
+    #f0f9ff 42%,
+    #e0f2fe 72%,
+    #fef9c3 100%
+  );
 }
 
 .glass-panel {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(16px);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
   box-shadow:
-    0 0 40px rgba(0, 212, 255, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    0 4px 24px rgba(14, 165, 233, 0.08),
+    0 1px 3px rgba(15, 23, 42, 0.04);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .neon-text {
-  color: var(--neon-blue);
-  text-shadow: 0 0 20px rgba(0, 212, 255, 0.6);
+  background: linear-gradient(90deg, #0284c7 0%, #0ea5e9 55%, #ca8a04 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .neon-ring:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.35);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.35);
+}
+
+.input-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.input-base {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid #bae6fd;
+  background-color: #ffffff;
+  padding: 0.875rem 1rem;
+  font-size: 0.875rem;
+  color: #1e293b;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input-base::placeholder {
+  color: #94a3b8;
+}
+
+.input-base:focus {
+  border-color: #38bdf8;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.35);
 }

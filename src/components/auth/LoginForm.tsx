@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { InputField } from "@/components/ui/InputField";
+import { PasswordInputField } from "@/components/ui/PasswordInputField";
 import { NeonButton } from "@/components/ui/NeonButton";
 import { mapLoginError, SESSION_PASSWORD_KEY } from "@/lib/auth-errors";
 import { createClient } from "@/lib/supabase";
@@ -58,11 +59,11 @@ export function LoginForm() {
       title="ログイン"
       subtitle="登録済みのアカウントでサインイン"
       footer={
-        <p className="text-slate-400">
+        <p className="text-slate-600">
           アカウントをお持ちでない方は{" "}
           <Link
             href="/signup"
-            className="font-medium text-cyan-400 hover:text-cyan-300"
+            className="font-semibold text-sky-600 hover:text-sky-700"
           >
             新規登録
           </Link>
@@ -81,10 +82,9 @@ export function LoginForm() {
           required
           disabled={loading}
         />
-        <InputField
+        <PasswordInputField
           label="パスワード"
           name="password"
-          type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="current-password"
@@ -93,7 +93,7 @@ export function LoginForm() {
         />
 
         {error ? (
-          <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300" role="alert">
+          <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">
             {error}
           </p>
         ) : null}

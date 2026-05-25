@@ -6,6 +6,7 @@ import { useState, type FormEvent } from "react";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { SignupErrorPanel } from "@/components/auth/SignupErrorPanel";
 import { InputField } from "@/components/ui/InputField";
+import { PasswordInputField } from "@/components/ui/PasswordInputField";
 import { NeonButton } from "@/components/ui/NeonButton";
 import { SESSION_PASSWORD_KEY, validateSignupInput } from "@/lib/auth-errors";
 import {
@@ -114,11 +115,11 @@ export function SignupForm() {
       title="新規登録"
       subtitle="アカウントを作成してダッシュボードへ"
       footer={
-        <p className="text-slate-400">
+        <p className="text-slate-600">
           すでにアカウントをお持ちですか？{" "}
           <Link
             href="/login"
-            className="font-medium text-cyan-400 hover:text-cyan-300"
+            className="font-semibold text-sky-600 hover:text-sky-700"
           >
             ログイン
           </Link>
@@ -147,10 +148,9 @@ export function SignupForm() {
           required
           disabled={loading}
         />
-        <InputField
+        <PasswordInputField
           label="パスワード"
           name="password"
-          type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="6文字以上"
@@ -162,7 +162,7 @@ export function SignupForm() {
 
         {successMessage ? (
           <p
-            className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-100"
+            className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
             role="status"
           >
             {successMessage}

@@ -14,12 +14,12 @@ export function NeonButton({
   ...props
 }: NeonButtonProps) {
   const base =
-    "inline-flex min-h-11 items-center justify-center rounded-lg px-5 py-2.5 text-sm font-semibold tracking-wide transition disabled:cursor-not-allowed disabled:opacity-50";
+    "inline-flex min-h-12 items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold tracking-wide transition disabled:cursor-not-allowed disabled:opacity-50";
   const variants = {
     primary:
-      "bg-gradient-to-r from-cyan-500 to-blue-600 text-black shadow-[0_0_24px_rgba(0,212,255,0.35)] hover:from-cyan-400 hover:to-blue-500",
+      "bg-gradient-to-r from-sky-400 via-cyan-400 to-amber-300 text-slate-900 shadow-md shadow-sky-200/60 hover:from-sky-500 hover:via-cyan-500 hover:to-amber-400",
     ghost:
-      "border border-cyan-500/40 bg-transparent text-cyan-200 hover:border-cyan-400 hover:bg-cyan-500/10",
+      "border border-sky-200 bg-white text-sky-700 shadow-sm hover:border-sky-300 hover:bg-sky-50",
   };
 
   return (

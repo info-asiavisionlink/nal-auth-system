@@ -26,12 +26,14 @@ export function PasswordField() {
   }
 
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <p className="text-xs uppercase tracking-wider text-cyan-400/70">パスワード</p>
-        <p className="mt-1 font-mono text-sm text-slate-200">{displayValue}</p>
+    <div className="flex min-w-0 flex-col gap-3 rounded-xl border border-sky-100 bg-sky-50/50 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-semibold uppercase tracking-wider text-sky-600">
+          パスワード
+        </p>
+        <p className="mt-1.5 break-all font-mono text-sm text-slate-700">{displayValue}</p>
         {!storedPassword ? (
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
             セキュリティのため、再ログイン後のみ一時表示できます。
           </p>
         ) : null}
@@ -39,7 +41,7 @@ export function PasswordField() {
       <NeonButton
         type="button"
         variant="ghost"
-        className="shrink-0 text-xs"
+        className="w-full shrink-0 text-xs sm:w-auto"
         onClick={handleToggle}
         disabled={!storedPassword}
       >

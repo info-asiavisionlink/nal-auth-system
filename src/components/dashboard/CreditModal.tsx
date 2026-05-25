@@ -133,27 +133,27 @@ export function CreditModal({ open, onClose }: CreditModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-x-hidden bg-slate-900/40 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal
       aria-labelledby="credit-modal-title"
     >
-      <div className="glass-panel max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl p-6 sm:p-8">
+      <div className="glass-panel box-border max-h-[90vh] w-full min-w-0 max-w-lg overflow-x-hidden overflow-y-auto rounded-2xl p-5 sm:p-8">
         <h2 id="credit-modal-title" className="neon-text text-xl font-bold">
           クレジット追加
         </h2>
 
-        <div className="my-6 rounded-xl border border-cyan-500/20 bg-black/30 p-5 text-center">
-          <p className="text-2xl font-bold text-white">
+        <div className="my-6 rounded-xl border border-sky-100 bg-gradient-to-br from-sky-50 to-amber-50 p-5 text-center">
+          <p className="text-2xl font-bold text-slate-900">
             {CREDIT_PACK_AMOUNT.toLocaleString()}円
           </p>
-          <p className="my-3 text-cyan-400">↓</p>
-          <p className="text-lg font-semibold text-cyan-200">
+          <p className="my-3 text-sky-500">↓</p>
+          <p className="text-lg font-semibold text-sky-700">
             {CREDIT_PACK_ADD.toLocaleString()} Credit 追加
           </p>
         </div>
 
-        <ul className="mb-6 space-y-2 text-xs leading-relaxed text-slate-400">
+        <ul className="mb-6 space-y-2 text-xs leading-relaxed text-slate-600">
           <li>• 決済完了後、クレジットはアカウントに反映されます</li>
           <li>
             • デジタルサービスのため、決済完了後のキャンセル・返金は原則できません
@@ -171,38 +171,39 @@ export function CreditModal({ open, onClose }: CreditModalProps) {
             items={CANCEL_POLICY_ITEMS}
           />
 
-          <div className="space-y-3 border-t border-cyan-500/15 pt-4 text-sm">
-            <label className="flex cursor-pointer items-start gap-3">
+          <div className="space-y-3 border-t border-sky-100 pt-4 text-sm text-slate-700">
+            <label className="flex min-w-0 cursor-pointer items-start gap-3">
               <input
                 type="checkbox"
-                className="mt-1 accent-cyan-400"
+                className="mt-1 shrink-0 accent-sky-500"
                 checked={termsAccepted}
                 onChange={(e) => setTermsAccepted(e.target.checked)}
                 disabled={loading}
               />
-              <span>利用規約を確認し、同意しました</span>
+              <span className="min-w-0 break-words">利用規約を確認し、同意しました</span>
             </label>
-            <label className="flex cursor-pointer items-start gap-3">
+            <label className="flex min-w-0 cursor-pointer items-start gap-3">
               <input
                 type="checkbox"
-                className="mt-1 accent-cyan-400"
+                className="mt-1 shrink-0 accent-sky-500"
                 checked={cancelAccepted}
                 onChange={(e) => setCancelAccepted(e.target.checked)}
                 disabled={loading}
               />
-              <span>キャンセルポリシーを確認し、同意しました</span>
+              <span className="min-w-0 break-words">キャンセルポリシーを確認し、同意しました</span>
             </label>
           </div>
         </div>
 
         {displayError ? <CheckoutErrorPanel error={displayError} /> : null}
 
-        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <div className="mt-6 flex min-w-0 flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <NeonButton
             type="button"
             variant="ghost"
             onClick={handleClose}
             disabled={loading}
+            className="w-full sm:w-auto"
           >
             キャンセル
           </NeonButton>
@@ -211,6 +212,7 @@ export function CreditModal({ open, onClose }: CreditModalProps) {
             onClick={handleCheckout}
             disabled={!canPay}
             loading={loading}
+            className="w-full sm:w-auto"
           >
             決済へ進む
           </NeonButton>
