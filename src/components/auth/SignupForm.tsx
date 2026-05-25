@@ -24,6 +24,7 @@ export function SignupForm() {
     null,
   );
   const [emailSent, setEmailSent] = useState(false);
+  const [emailAlreadyExists, setEmailAlreadyExists] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -36,6 +37,7 @@ export function SignupForm() {
     if (validationError) {
       console.log("[signup] 入力値チェック失敗:", validationError);
       setEmailSent(false);
+      setEmailAlreadyExists(false);
       setDisplayError(
         formatGenericDisplay("入力内容を確認してください。", validationError),
       );
@@ -47,11 +49,37 @@ export function SignupForm() {
     setLoading(true);
     setDisplayError(null);
     setEmailSent(false);
+    setEmailAlreadyExists(false);
 
     const trimmedEmail = email.trim();
     const trimmedUsername = username.trim();
 
     try {
+      const checkResponse = await fetch("/api/auth/check-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmedEmail }),
+      });
+      const checkResult = (await checkResponse.json()) as {
+        exists?: boolean;
+        error?: string;
+      };
+
+      if (!checkResponse.ok) {
+        setDisplayError(
+          formatGenericDisplay(
+            "登録に失敗しました。",
+            checkResult.error ?? "メールアドレスの確認に失敗しました。",
+          ),
+        );
+        return;
+      }
+
+      if (checkResult.exists) {
+        setEmailAlreadyExists(true);
+        return;
+      }
+
       const supabase = createClient();
       const emailRedirectTo = `${window.location.origin}/auth/callback`;
 
@@ -123,7 +151,7 @@ export function SignupForm() {
           placeholder="your_name"
           autoComplete="username"
           required
-          disabled={loading || emailSent}
+          disabled={loading || emailSent || emailAlreadyExists}
         />
         <InputField
           label="メールアドレス"
@@ -134,7 +162,7 @@ export function SignupForm() {
           placeholder="you@example.com"
           autoComplete="email"
           required
-          disabled={loading || emailSent}
+          disabled={loading || emailSent || emailAlreadyExists}
         />
         <PasswordInputField
           label="パスワード"
@@ -145,8 +173,25 @@ export function SignupForm() {
           autoComplete="new-password"
           minLength={6}
           required
-          disabled={loading || emailSent}
+          disabled={loading || emailSent || emailAlreadyExists}
         />
+
+        {emailAlreadyExists ? (
+          <div
+            className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950"
+            role="alert"
+          >
+            <p className="font-semibold">
+              このメールアドレスはすでに登録されています。ログインしてください。
+            </p>
+            <Link
+              href="/login"
+              className="inline-block font-semibold text-sky-700 hover:text-sky-800"
+            >
+              ログインページへ
+            </Link>
+          </div>
+        ) : null}
 
         {emailSent ? (
           <div
@@ -171,7 +216,7 @@ export function SignupForm() {
 
         {displayError ? <SignupErrorPanel error={displayError} /> : null}
 
-        {!emailSent ? (
+        {!emailSent && !emailAlreadyExists ? (
           <NeonButton
             type="submit"
             className="w-full"

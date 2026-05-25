@@ -16,7 +16,7 @@ function getStatusMessage(searchParams: URLSearchParams): string | null {
     return "メール認証が完了しました。ログインしてください。";
   }
   if (searchParams.get("error") === "auth_callback_failed") {
-    return "メール認証に失敗しました。再度お試しください。";
+    return "メール認証に失敗しました。リンクの有効期限が切れている可能性があります。再度新規登録またはログインをお試しください。";
   }
   if (searchParams.get("error") === "email_not_confirmed") {
     return "メール認証が完了していません。受信メールを確認してください。";
