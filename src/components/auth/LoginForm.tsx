@@ -21,6 +21,9 @@ function getStatusMessage(searchParams: URLSearchParams): string | null {
   if (searchParams.get("error") === "email_not_confirmed") {
     return "メール認証が完了していません。受信メールを確認してください。";
   }
+  if (searchParams.get("reset") === "success") {
+    return "パスワードを変更しました。新しいパスワードでログインしてください。";
+  }
   return null;
 }
 
@@ -140,6 +143,15 @@ export function LoginForm() {
         >
           ログイン
         </NeonButton>
+
+        <p className="text-center">
+          <Link
+            href="/forgot-password"
+            className="text-sm font-semibold text-sky-600 hover:text-sky-700"
+          >
+            パスワードをお忘れですか？
+          </Link>
+        </p>
       </form>
     </AuthLayout>
   );
