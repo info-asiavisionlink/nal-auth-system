@@ -65,12 +65,24 @@ npm install
 
 Supabase Dashboard → SQL Editor で `supabase/schema.sql` を実行してください。
 
-**Auth 設定（推奨）**
+**Auth 設定（メール認証・必須）**
 
-- Authentication → URL Configuration  
-  - Site URL: `http://localhost:3000`（本番はデプロイ URL）
-  - Redirect URLs: `http://localhost:3000/auth/callback`
-- メール確認を有効にする場合、サインアップ後はメール認証完了までダッシュボードに入れません。
+Supabase Dashboard で以下を設定してください。
+
+1. **Confirm email を ON**  
+   - Authentication → Sign In / Providers → **Email** → **Confirm email** を ON
+
+2. **URL Configuration**  
+   - Authentication → URL Configuration  
+   - **Site URL**: 本番 URL（開発時は `http://localhost:3000`）  
+   - **Redirect URLs** に以下を追加:
+     - `http://localhost:3000/auth/callback`
+     - `https://あなたの本番ドメイン/auth/callback`
+
+3. **フロー概要**  
+   - 新規登録後、確認メールのリンクをクリック → `/auth/callback` → `/login?verified=1`  
+   - メール認証完了後にログイン → `/dashboard`  
+   - メール未認証のユーザーは `/dashboard` に入れません
 
 ### 4. 起動
 

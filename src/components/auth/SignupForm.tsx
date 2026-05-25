@@ -1,14 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { SignupErrorPanel } from "@/components/auth/SignupErrorPanel";
 import { InputField } from "@/components/ui/InputField";
 import { PasswordInputField } from "@/components/ui/PasswordInputField";
 import { NeonButton } from "@/components/ui/NeonButton";
-import { SESSION_PASSWORD_KEY, validateSignupInput } from "@/lib/auth-errors";
+import { validateSignupInput } from "@/lib/auth-errors";
 import {
   formatAuthErrorDisplay,
   formatGenericDisplay,
@@ -17,18 +16,14 @@ import {
 import { createClient } from "@/lib/supabase";
 import type { AuthError } from "@supabase/supabase-js";
 
-const EMAIL_CONFIRMATION_MESSAGE =
-  "登録が完了しました。確認メールを開いて認証後、ログインしてください。";
-
 export function SignupForm() {
-  const router = useRouter();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayError, setDisplayError] = useState<SignupDisplayError | null>(
     null,
   );
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [emailSent, setEmailSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -40,7 +35,7 @@ export function SignupForm() {
     const validationError = validateSignupInput(username, email, password);
     if (validationError) {
       console.log("[signup] 入力値チェック失敗:", validationError);
-      setSuccessMessage(null);
+      setEmailSent(false);
       setDisplayError(
         formatGenericDisplay("入力内容を確認してください。", validationError),
       );
@@ -51,19 +46,21 @@ export function SignupForm() {
 
     setLoading(true);
     setDisplayError(null);
-    setSuccessMessage(null);
+    setEmailSent(false);
 
     const trimmedEmail = email.trim();
     const trimmedUsername = username.trim();
 
     try {
       const supabase = createClient();
+      const emailRedirectTo = `${window.location.origin}/auth/callback`;
 
       console.log("[signup] supabase.auth.signUp 実行");
       const { data, error } = await supabase.auth.signUp({
         email: trimmedEmail,
         password,
         options: {
+          emailRedirectTo,
           data: {
             username: trimmedUsername,
           },
@@ -84,16 +81,7 @@ export function SignupForm() {
         hasSession: Boolean(data.session),
       });
 
-      if (data.session) {
-        sessionStorage.setItem(SESSION_PASSWORD_KEY, password);
-        console.log("[signup] session あり → dashboard へ遷移");
-        router.push("/dashboard");
-        router.refresh();
-        return;
-      }
-
-      console.log("[signup] session なし → メール確認待ち");
-      setSuccessMessage(EMAIL_CONFIRMATION_MESSAGE);
+      setEmailSent(true);
     } catch (error) {
       console.error("SIGNUP_UNEXPECTED_ERROR", error);
       const message =
@@ -135,7 +123,7 @@ export function SignupForm() {
           placeholder="your_name"
           autoComplete="username"
           required
-          disabled={loading}
+          disabled={loading || emailSent}
         />
         <InputField
           label="メールアドレス"
@@ -146,7 +134,7 @@ export function SignupForm() {
           placeholder="you@example.com"
           autoComplete="email"
           required
-          disabled={loading}
+          disabled={loading || emailSent}
         />
         <PasswordInputField
           label="パスワード"
@@ -157,28 +145,42 @@ export function SignupForm() {
           autoComplete="new-password"
           minLength={6}
           required
-          disabled={loading}
+          disabled={loading || emailSent}
         />
 
-        {successMessage ? (
-          <p
-            className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
+        {emailSent ? (
+          <div
+            className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-900"
             role="status"
           >
-            {successMessage}
-          </p>
+            <p className="font-semibold">確認メールを送信しました</p>
+            <p className="leading-relaxed">
+              入力したメールアドレス宛に届いた認証リンクをクリックしてください。
+            </p>
+            <p className="leading-relaxed">
+              認証完了後、ログインページからログインできます。
+            </p>
+            <Link
+              href="/login"
+              className="inline-block font-semibold text-sky-700 hover:text-sky-800"
+            >
+              ログインページへ
+            </Link>
+          </div>
         ) : null}
 
         {displayError ? <SignupErrorPanel error={displayError} /> : null}
 
-        <NeonButton
-          type="submit"
-          className="w-full"
-          loading={loading}
-          disabled={loading}
-        >
-          アカウントを作成
-        </NeonButton>
+        {!emailSent ? (
+          <NeonButton
+            type="submit"
+            className="w-full"
+            loading={loading}
+            disabled={loading}
+          >
+            アカウントを作成
+          </NeonButton>
+        ) : null}
       </form>
     </AuthLayout>
   );

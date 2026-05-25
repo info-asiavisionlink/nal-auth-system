@@ -7,12 +7,27 @@ import { AuthLayout } from "@/components/auth/AuthLayout";
 import { InputField } from "@/components/ui/InputField";
 import { PasswordInputField } from "@/components/ui/PasswordInputField";
 import { NeonButton } from "@/components/ui/NeonButton";
+import { isEmailConfirmed } from "@/lib/auth-email";
 import { mapLoginError, SESSION_PASSWORD_KEY } from "@/lib/auth-errors";
 import { createClient } from "@/lib/supabase";
+
+function getStatusMessage(searchParams: URLSearchParams): string | null {
+  if (searchParams.get("verified") === "1") {
+    return "メール認証が完了しました。ログインしてください。";
+  }
+  if (searchParams.get("error") === "auth_callback_failed") {
+    return "メール認証に失敗しました。再度お試しください。";
+  }
+  if (searchParams.get("error") === "email_not_confirmed") {
+    return "メール認証が完了していません。受信メールを確認してください。";
+  }
+  return null;
+}
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const statusMessage = getStatusMessage(searchParams);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -32,13 +47,20 @@ export function LoginForm() {
 
     try {
       const supabase = createClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
 
       if (signInError) {
         setError(mapLoginError(signInError.message));
+        return;
+      }
+
+      const user = data.user;
+      if (!user || !isEmailConfirmed(user)) {
+        await supabase.auth.signOut();
+        setError("メール認証が完了していません。受信メールを確認してください。");
         return;
       }
 
@@ -71,6 +93,15 @@ export function LoginForm() {
       }
     >
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+        {statusMessage ? (
+          <p
+            className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900"
+            role="status"
+          >
+            {statusMessage}
+          </p>
+        ) : null}
+
         <InputField
           label="メールアドレス"
           name="email"
@@ -93,7 +124,10 @@ export function LoginForm() {
         />
 
         {error ? (
-          <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">
+          <p
+            className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"
+            role="alert"
+          >
             {error}
           </p>
         ) : null}

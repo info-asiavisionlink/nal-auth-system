@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
+import { isEmailConfirmed } from "@/lib/auth-email";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import type { Profile } from "@/types/database";
 
@@ -14,6 +15,10 @@ export default async function DashboardPage() {
 
   if (!user) {
     redirect("/login");
+  }
+
+  if (!isEmailConfirmed(user)) {
+    redirect("/login?error=email_not_confirmed");
   }
 
   const { data: profile, error } = await supabase

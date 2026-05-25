@@ -4,15 +4,23 @@ import { createServerSupabaseClient } from "@/lib/supabase-server";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  const authError = searchParams.get("error");
+
+  if (authError) {
+    return NextResponse.redirect(
+      `${origin}/login?error=auth_callback_failed`,
+    );
+  }
 
   if (code) {
     const supabase = await createServerSupabaseClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
+
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+      await supabase.auth.signOut();
+      return NextResponse.redirect(`${origin}/login?verified=1`);
     }
   }
 
-  return NextResponse.redirect(`${origin}/login`);
+  return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`);
 }
