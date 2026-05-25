@@ -1,3 +1,8 @@
+/**
+ * Google Sheets — ダッシュボードのシステム一覧表示専用。
+ * クレジット消費は Supabase tools（tools-db.ts）を正とする。
+ * Sheets の tool_id と Supabase の tool_key を一致させること。
+ */
 import type { SystemTool, SystemToolsFetchResult } from "@/types/system-tool";
 
 const SHEET_HEADERS = [

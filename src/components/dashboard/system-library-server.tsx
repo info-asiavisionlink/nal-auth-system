@@ -1,6 +1,6 @@
 import { SystemLibrary } from "@/components/dashboard/system-library";
 import { fetchUserFavoriteToolIds } from "@/lib/favorite-tools";
-import { fetchActiveToolsFromDb } from "@/lib/tools-db";
+import { fetchActiveSystemTools } from "@/lib/google-sheets";
 
 type SystemLibraryServerProps = {
   userId: string;
@@ -8,7 +8,7 @@ type SystemLibraryServerProps = {
 
 export async function SystemLibraryServer({ userId }: SystemLibraryServerProps) {
   const [toolsResult, favoriteIds] = await Promise.all([
-    fetchActiveToolsFromDb(),
+    fetchActiveSystemTools(),
     fetchUserFavoriteToolIds(userId),
   ]);
 
