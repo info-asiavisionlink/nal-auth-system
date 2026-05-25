@@ -11,23 +11,64 @@ export type ToolAccessTokenRecord = {
   expires_at: string;
 };
 
+export type CreateToolAccessTokenResult =
+  | { success: true; token: string; expiresAt: string }
+  | { success: false; error: string; code?: string };
+
 export function generateAccessToken(): string {
   return randomBytes(32).toString("base64url");
 }
 
+/** Google Sheets の tool_url を完全な URL に正規化する */
+export function normalizeToolUrl(toolUrl: string): string {
+  const trimmed = toolUrl.trim();
+
+  if (!trimmed) {
+    throw new Error("ツールURLが空です。");
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  return `https://${trimmed.replace(/^\/+/, "")}`;
+}
+
 export function appendAccessTokenToUrl(toolUrl: string, token: string): string {
-  const url = new URL(toolUrl);
+  if (!token.trim()) {
+    throw new Error("access_token が空です。");
+  }
+
+  const normalized = normalizeToolUrl(toolUrl);
+  const url = new URL(normalized);
   url.searchParams.set("access_token", token);
   return url.toString();
+}
+
+export function urlHasAccessToken(targetUrl: string): boolean {
+  try {
+    const parsed = new URL(normalizeToolUrl(targetUrl));
+    return Boolean(parsed.searchParams.get("access_token")?.trim());
+  } catch {
+    return targetUrl.includes("access_token=");
+  }
 }
 
 export async function createToolAccessToken(
   userId: string,
   toolKey: string,
-): Promise<{ token: string; expiresAt: string } | null> {
+): Promise<CreateToolAccessTokenResult> {
   const admin = createAdminClient();
   const token = generateAccessToken();
-  const expiresAt = new Date(Date.now() + TOKEN_TTL_MINUTES * 60 * 1000).toISOString();
+  const expiresAt = new Date(
+    Date.now() + TOKEN_TTL_MINUTES * 60 * 1000,
+  ).toISOString();
+
+  console.log("[tools/open] createToolAccessToken start", {
+    userId,
+    toolKey,
+    expiresAt,
+  });
 
   const { error } = await admin.from("tool_access_tokens").insert({
     user_id: userId,
@@ -37,10 +78,27 @@ export async function createToolAccessToken(
   });
 
   if (error) {
-    return null;
+    console.error("[tools/open] createToolAccessToken failed", {
+      userId,
+      toolKey,
+      code: error.code,
+      message: error.message,
+      details: error.details,
+    });
+    return {
+      success: false,
+      error: error.message,
+      code: error.code,
+    };
   }
 
-  return { token, expiresAt };
+  console.log("[tools/open] createToolAccessToken success", {
+    userId,
+    toolKey,
+    tokenLength: token.length,
+  });
+
+  return { success: true, token, expiresAt };
 }
 
 export async function verifyToolAccessToken(

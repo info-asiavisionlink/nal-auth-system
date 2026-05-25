@@ -41,6 +41,11 @@ export function SystemCard({
         success?: boolean;
         url?: string;
         message?: string;
+        debug?: {
+          tool_key?: string;
+          sheetToolUrl?: string;
+          hasAccessToken?: boolean;
+        };
       };
 
       if (!response.ok || !data.success || !data.url) {
@@ -48,7 +53,18 @@ export function SystemCard({
         return;
       }
 
-      window.location.href = data.url;
+      if (
+        !data.url.includes("access_token=") ||
+        data.debug?.hasAccessToken === false
+      ) {
+        setOpenError(
+          "遷移先URLに access_token が含まれていません。管理者に連絡してください。",
+        );
+        return;
+      }
+
+      window.location.assign(data.url);
+      return;
     } catch {
       setOpenError("通信エラーが発生しました。時間をおいて再度お試しください。");
     } finally {

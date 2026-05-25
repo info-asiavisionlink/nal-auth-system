@@ -4,6 +4,8 @@ import { createServerSupabaseClient } from "@/lib/supabase-server";
 import {
   appendAccessTokenToUrl,
   createToolAccessToken,
+  normalizeToolUrl,
+  urlHasAccessToken,
 } from "@/lib/tool-access-token";
 import {
   fetchToolCreditConfigByKeyAdmin,
@@ -14,6 +16,19 @@ type OpenToolBody = {
   tool_key?: string;
   toolId?: string;
 };
+
+function tokenInsertErrorMessage(code?: string, message?: string): string {
+  if (code === "42P01") {
+    return "tool_access_tokens テーブルが存在しません。Supabase SQL Editor で supabase/tool-access-tokens.sql を実行してください。";
+  }
+  if (code === "23503") {
+    return "ユーザー情報が見つかりません。再度ログインしてください。";
+  }
+  if (message) {
+    return `一時トークンの保存に失敗しました: ${message}`;
+  }
+  return "一時トークンの保存に失敗しました。Supabase の tool_access_tokens テーブルを確認してください。";
+}
 
 export async function POST(request: Request) {
   try {
@@ -47,7 +62,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Google Sheets — 表示・遷移先 URL
+    console.log("[tools/open] request", { userId: user.id, toolKey });
+
     const sheetLookup = await findSystemToolById(toolKey);
 
     if (sheetLookup.status === "error") {
@@ -56,6 +72,7 @@ export async function POST(request: Request) {
           success: false,
           error: "SHEETS_ERROR",
           message: sheetLookup.error,
+          debug: { tool_key: toolKey },
         },
         { status: 503 },
       );
@@ -67,6 +84,7 @@ export async function POST(request: Request) {
           success: false,
           error: "TOOL_NOT_FOUND",
           message: "対象のツールが見つかりません。",
+          debug: { tool_key: toolKey },
         },
         { status: 404 },
       );
@@ -78,26 +96,52 @@ export async function POST(request: Request) {
           success: false,
           error: "TOOL_INACTIVE",
           message: "このツールは現在利用できません。",
+          debug: { tool_key: toolKey },
         },
         { status: 403 },
       );
     }
 
     const sheetTool = sheetLookup.tool;
-    const sheetToolUrl = sheetTool.tool_url?.trim();
+    const rawSheetToolUrl = sheetTool.tool_url?.trim() ?? "";
 
-    if (!sheetToolUrl) {
+    if (!rawSheetToolUrl) {
       return NextResponse.json(
         {
           success: false,
           error: "TOOL_URL_MISSING",
           message: "ツールURLが設定されていません。",
+          debug: {
+            tool_key: toolKey,
+            sheetToolUrl: rawSheetToolUrl,
+            hasAccessToken: false,
+          },
         },
         { status: 400 },
       );
     }
 
-    // 2. Supabase tools — クレジット金額・有効/無効（tool_url は参照しない）
+    let normalizedSheetToolUrl: string;
+    try {
+      normalizedSheetToolUrl = normalizeToolUrl(rawSheetToolUrl);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "ツールURLの形式が不正です。";
+      return NextResponse.json(
+        {
+          success: false,
+          error: "TOOL_URL_INVALID",
+          message,
+          debug: {
+            tool_key: toolKey,
+            sheetToolUrl: rawSheetToolUrl,
+            hasAccessToken: false,
+          },
+        },
+        { status: 400 },
+      );
+    }
+
     const creditConfig = await fetchToolCreditConfigByKeyAdmin(toolKey);
 
     if (!creditConfig) {
@@ -106,6 +150,11 @@ export async function POST(request: Request) {
           success: false,
           error: "TOOL_CREDIT_NOT_REGISTERED",
           message: "対象のツールがクレジット管理に登録されていません。",
+          debug: {
+            tool_key: toolKey,
+            sheetToolUrl: normalizedSheetToolUrl,
+            hasAccessToken: false,
+          },
         },
         { status: 404 },
       );
@@ -117,6 +166,11 @@ export async function POST(request: Request) {
           success: false,
           error: "TOOL_INACTIVE",
           message: "このツールは現在利用できません。",
+          debug: {
+            tool_key: toolKey,
+            sheetToolUrl: normalizedSheetToolUrl,
+            hasAccessToken: false,
+          },
         },
         { status: 403 },
       );
@@ -128,6 +182,11 @@ export async function POST(request: Request) {
           success: false,
           error: "INVALID_CREDIT_CONFIG",
           message: "ツールのクレジット設定が不正です。",
+          debug: {
+            tool_key: toolKey,
+            sheetToolUrl: normalizedSheetToolUrl,
+            hasAccessToken: false,
+          },
         },
         { status: 500 },
       );
@@ -135,12 +194,18 @@ export async function POST(request: Request) {
 
     const issued = await createToolAccessToken(user.id, toolKey);
 
-    if (!issued) {
+    if (!issued.success) {
       return NextResponse.json(
         {
           success: false,
           error: "TOKEN_ISSUE_FAILED",
-          message: "一時トークンの発行に失敗しました。",
+          message: tokenInsertErrorMessage(issued.code, issued.error),
+          debug: {
+            tool_key: toolKey,
+            sheetToolUrl: normalizedSheetToolUrl,
+            hasAccessToken: false,
+            tokenErrorCode: issued.code ?? null,
+          },
         },
         { status: 500 },
       );
@@ -148,30 +213,76 @@ export async function POST(request: Request) {
 
     let redirectUrl: string;
     try {
-      redirectUrl = appendAccessTokenToUrl(sheetToolUrl, issued.token);
-    } catch {
+      redirectUrl = appendAccessTokenToUrl(
+        normalizedSheetToolUrl,
+        issued.token,
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "ツールURLへの access_token 付与に失敗しました。";
       return NextResponse.json(
         {
           success: false,
-          error: "TOOL_URL_INVALID",
-          message: "ツールURLの形式が不正です。",
+          error: "TOKEN_APPEND_FAILED",
+          message,
+          debug: {
+            tool_key: toolKey,
+            sheetToolUrl: normalizedSheetToolUrl,
+            hasAccessToken: false,
+          },
         },
         { status: 400 },
       );
     }
+
+    const hasAccessToken = urlHasAccessToken(redirectUrl);
+
+    if (!hasAccessToken) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "TOKEN_APPEND_FAILED",
+          message:
+            "遷移先URLへの access_token 付与に失敗しました。tool_url を確認してください。",
+          debug: {
+            tool_key: toolKey,
+            sheetToolUrl: normalizedSheetToolUrl,
+            hasAccessToken: false,
+          },
+        },
+        { status: 500 },
+      );
+    }
+
+    console.log("[tools/open] success", {
+      toolKey,
+      sheetToolUrl: normalizedSheetToolUrl,
+      hasAccessToken,
+    });
 
     return NextResponse.json({
       success: true,
       url: redirectUrl,
       tool_key: toolKey,
       credit_cost: creditConfig.credit_cost,
+      debug: {
+        tool_key: toolKey,
+        sheetToolUrl: normalizedSheetToolUrl,
+        hasAccessToken,
+      },
     });
-  } catch {
+  } catch (error) {
+    console.error("[tools/open] unexpected error", error);
     return NextResponse.json(
       {
         success: false,
         error: "INTERNAL_ERROR",
-        message: "サーバーエラーが発生しました。",
+        message:
+          error instanceof Error
+            ? error.message
+            : "サーバーエラーが発生しました。",
       },
       { status: 500 },
     );
