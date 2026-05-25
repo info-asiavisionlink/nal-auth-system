@@ -139,15 +139,15 @@ export function CreditModal({ open, onClose }: CreditModalProps) {
       aria-labelledby="credit-modal-title"
     >
       <div className="glass-panel box-border max-h-[90vh] w-full min-w-0 max-w-lg overflow-x-hidden overflow-y-auto rounded-2xl p-5 sm:p-8">
-        <h2 id="credit-modal-title" className="neon-text text-xl font-bold">
+        <h2 id="credit-modal-title" className="accent-heading text-xl font-bold">
           クレジット追加
         </h2>
 
-        <div className="my-6 rounded-xl border border-sky-100 bg-gradient-to-br from-sky-50 to-amber-50 p-5 text-center">
+        <div className="my-6 rounded-xl border border-sky-100 bg-white p-5 text-center shadow-sm">
           <p className="text-2xl font-bold text-slate-900">
             {CREDIT_PACK_AMOUNT.toLocaleString()}円
           </p>
-          <p className="my-3 text-sky-500">↓</p>
+          <p className="my-3 font-medium text-sky-600">↓</p>
           <p className="text-lg font-semibold text-sky-700">
             {CREDIT_PACK_ADD.toLocaleString()} Credit 追加
           </p>

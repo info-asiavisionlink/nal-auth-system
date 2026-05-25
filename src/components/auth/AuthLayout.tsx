@@ -21,10 +21,10 @@ export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProp
 
       <main className="relative z-10 mx-auto flex min-h-screen w-full min-w-0 max-w-md flex-col justify-center px-4 py-10 sm:px-6 sm:py-12">
         <header className="mb-8 text-center">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.25em] text-sky-600">
+          <p className="accent-heading mb-2 text-xs font-semibold uppercase tracking-[0.25em]">
             NAL Secure Access
           </p>
-          <h1 className="neon-text text-3xl font-bold leading-tight sm:text-4xl">
+          <h1 className="accent-heading text-3xl font-bold leading-tight sm:text-4xl">
             {title}
           </h1>
           <p className="mt-3 text-sm leading-relaxed text-slate-600">{subtitle}</p>

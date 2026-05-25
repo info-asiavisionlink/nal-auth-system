@@ -5,7 +5,7 @@ type PolicyDisclosureProps = {
 
 export function PolicyDisclosure({ buttonLabel, items }: PolicyDisclosureProps) {
   return (
-    <details className="w-full min-w-0 max-w-full rounded-xl border border-sky-100 bg-sky-50/60 text-sm">
+    <details className="w-full min-w-0 max-w-full rounded-xl border border-sky-100 bg-white text-sm shadow-sm">
       <summary className="cursor-pointer select-none break-words px-4 py-3 font-semibold text-sky-700 hover:text-sky-800">
         {buttonLabel}
       </summary>

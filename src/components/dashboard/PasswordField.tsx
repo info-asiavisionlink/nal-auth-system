@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { NeonButton } from "@/components/ui/NeonButton";
 import { SESSION_PASSWORD_KEY } from "@/lib/auth-errors";
 
 function readSessionPassword(): string | null {
@@ -16,7 +15,7 @@ export function PasswordField() {
   const storedPassword = password ?? readSessionPassword();
 
   const displayValue = revealed
-    ? storedPassword ?? "（この端末のログインセッションでは表示できません）"
+    ? storedPassword ?? "（再ログイン後に表示）"
     : "********";
 
   function handleToggle() {
@@ -26,27 +25,24 @@ export function PasswordField() {
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-3 rounded-xl border border-sky-100 bg-sky-50/50 p-4 sm:flex-row sm:items-center sm:justify-between">
-      <div className="min-w-0 flex-1">
-        <p className="text-xs font-semibold uppercase tracking-wider text-sky-600">
-          パスワード
+    <div className="flex min-w-0 flex-col rounded-xl border border-sky-100 bg-white p-4 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wider text-sky-600">
+        パスワード
+      </p>
+      <p className="mt-2 break-all font-mono text-sm text-slate-800">{displayValue}</p>
+      {!storedPassword ? (
+        <p className="mt-2 text-xs leading-relaxed text-slate-500">
+          再ログイン後のみ一時表示できます。
         </p>
-        <p className="mt-1.5 break-all font-mono text-sm text-slate-700">{displayValue}</p>
-        {!storedPassword ? (
-          <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
-            セキュリティのため、再ログイン後のみ一時表示できます。
-          </p>
-        ) : null}
-      </div>
-      <NeonButton
+      ) : null}
+      <button
         type="button"
-        variant="ghost"
-        className="w-full shrink-0 text-xs sm:w-auto"
         onClick={handleToggle}
         disabled={!storedPassword}
+        className="mt-3 w-fit rounded-lg border border-sky-200 bg-white px-3 py-2 text-xs font-semibold text-sky-700 transition hover:border-sky-300 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {revealed ? "隠す" : "確認する"}
-      </NeonButton>
+      </button>
     </div>
   );
 }
