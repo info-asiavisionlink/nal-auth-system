@@ -5,7 +5,10 @@ import {
   appendAccessTokenToUrl,
   createToolAccessToken,
 } from "@/lib/tool-access-token";
-import { fetchToolByKeyAdmin } from "@/lib/tools-db";
+import {
+  fetchToolCreditConfigByKeyAdmin,
+  isValidToolCreditCost,
+} from "@/lib/tools-db";
 
 type OpenToolBody = {
   tool_key?: string;
@@ -44,6 +47,7 @@ export async function POST(request: Request) {
       );
     }
 
+    // 1. Google Sheets — 表示・遷移先 URL
     const sheetLookup = await findSystemToolById(toolKey);
 
     if (sheetLookup.status === "error") {
@@ -80,8 +84,9 @@ export async function POST(request: Request) {
     }
 
     const sheetTool = sheetLookup.tool;
+    const sheetToolUrl = sheetTool.tool_url?.trim();
 
-    if (!sheetTool.tool_url?.trim()) {
+    if (!sheetToolUrl) {
       return NextResponse.json(
         {
           success: false,
@@ -92,20 +97,21 @@ export async function POST(request: Request) {
       );
     }
 
-    const dbTool = await fetchToolByKeyAdmin(toolKey);
+    // 2. Supabase tools — クレジット金額・有効/無効（tool_url は参照しない）
+    const creditConfig = await fetchToolCreditConfigByKeyAdmin(toolKey);
 
-    if (!dbTool) {
+    if (!creditConfig) {
       return NextResponse.json(
         {
           success: false,
-          error: "TOOL_NOT_FOUND",
-          message: "対象のツールが見つかりません。",
+          error: "TOOL_CREDIT_NOT_REGISTERED",
+          message: "対象のツールがクレジット管理に登録されていません。",
         },
         { status: 404 },
       );
     }
 
-    if (!dbTool.is_active) {
+    if (!creditConfig.is_active) {
       return NextResponse.json(
         {
           success: false,
@@ -113,6 +119,17 @@ export async function POST(request: Request) {
           message: "このツールは現在利用できません。",
         },
         { status: 403 },
+      );
+    }
+
+    if (!isValidToolCreditCost(creditConfig.credit_cost)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "INVALID_CREDIT_CONFIG",
+          message: "ツールのクレジット設定が不正です。",
+        },
+        { status: 500 },
       );
     }
 
@@ -131,10 +148,7 @@ export async function POST(request: Request) {
 
     let redirectUrl: string;
     try {
-      redirectUrl = appendAccessTokenToUrl(
-        sheetTool.tool_url.trim(),
-        issued.token,
-      );
+      redirectUrl = appendAccessTokenToUrl(sheetToolUrl, issued.token);
     } catch {
       return NextResponse.json(
         {
@@ -149,6 +163,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       url: redirectUrl,
+      tool_key: toolKey,
+      credit_cost: creditConfig.credit_cost,
     });
   } catch {
     return NextResponse.json(
