@@ -39,7 +39,7 @@ export default async function DashboardPage() {
       profile={profile}
       systemLibrary={
         <Suspense fallback={<SystemLibraryLoading />}>
-          <SystemLibraryServer userId={user.id} />
+          <SystemLibraryServer userId={user.id} profile={profile} />
         </Suspense>
       }
     />

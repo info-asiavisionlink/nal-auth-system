@@ -4,11 +4,12 @@ import { ExternalLink, Star } from "lucide-react";
 import { useState } from "react";
 import { NeonButton } from "@/components/ui/NeonButton";
 import { DEFAULT_THUMBNAIL_PATH } from "@/lib/constants";
-import { openManual, openTool } from "@/lib/open-tool";
+import { openManual, openTool, type OpenToolUserContext } from "@/lib/open-tool";
 import type { Tool } from "@/types/tool";
 
 type SystemCardProps = {
   tool: Tool;
+  openToolUser: OpenToolUserContext;
   isFavorite: boolean;
   favoriteLoading: boolean;
   onToggleFavorite: (toolId: string) => void;
@@ -16,6 +17,7 @@ type SystemCardProps = {
 
 export function SystemCard({
   tool,
+  openToolUser,
   isFavorite,
   favoriteLoading,
   onToggleFavorite,
@@ -29,7 +31,7 @@ export function SystemCard({
 
   function handleOpenTool() {
     if (!tool.tool_url.trim()) return;
-    openTool(tool);
+    openTool(tool, openToolUser);
   }
 
   function handleOpenManual() {

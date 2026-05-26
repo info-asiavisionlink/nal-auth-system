@@ -4,12 +4,14 @@ import { useMemo, useState, useTransition } from "react";
 import { SystemCard } from "@/components/dashboard/system-card";
 import { SystemSearch } from "@/components/dashboard/system-search";
 import { createClient } from "@/lib/supabase";
+import type { OpenToolUserContext } from "@/lib/open-tool";
 import type { Tool } from "@/types/tool";
 
 type SystemLibraryProps = {
   tools: Tool[];
   initialFavoriteIds: string[];
   userId: string;
+  openToolUser: OpenToolUserContext;
   error: string | null;
 };
 
@@ -39,6 +41,7 @@ export function SystemLibrary({
   tools,
   initialFavoriteIds,
   userId,
+  openToolUser,
   error,
 }: SystemLibraryProps) {
   const [query, setQuery] = useState("");
@@ -161,6 +164,7 @@ export function SystemLibrary({
             <SystemCard
               key={tool.tool_id}
               tool={tool}
+              openToolUser={openToolUser}
               isFavorite={favoriteIds.has(tool.tool_id)}
               favoriteLoading={pendingToolId === tool.tool_id}
               onToggleFavorite={handleToggleFavorite}
