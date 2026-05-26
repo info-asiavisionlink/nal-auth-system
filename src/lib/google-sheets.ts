@@ -1,23 +1,36 @@
 /**
- * Google Sheets — ダッシュボード表示・ツールURL（tool_url）管理。
- * クレジット消費・金額は Supabase tools（tools-db.ts）を正とする。
- * Sheets の tool_id と Supabase の tool_key を一致させること。
+ * Google スプレッドシート — ダッシュボードのツール一覧（CMS）。
+ * 公開シートは CSV エクスポートで取得（API キー不要）。
+ * tool_id は Supabase tools の tool_key と一致させること。
  */
-import type { SystemTool, SystemToolsFetchResult } from "@/types/system-tool";
+import {
+  DEFAULT_GOOGLE_SHEET_ID,
+} from "@/lib/constants";
+import { fetchSpreadsheetCsvRows } from "@/lib/sheet-csv";
+import type { Tool, ToolsFetchResult } from "@/types/tool";
 
 const SHEET_HEADERS = [
   "tool_id",
   "tool_name",
   "description",
-  "category",
-  "tags",
-  "image_url",
+  "thumbnail_url",
   "tool_url",
-  "document_url",
-  "credit_cost",
+  "manual_url",
+  "required_credit",
   "is_active",
+  "category",
   "sort_order",
+  "button_text",
+  "tags",
+  "created_at",
 ] as const;
+
+/** 旧カラム名との互換 */
+const HEADER_ALIASES: Record<string, (typeof SHEET_HEADERS)[number]> = {
+  image_url: "thumbnail_url",
+  document_url: "manual_url",
+  credit_cost: "required_credit",
+};
 
 function parseBoolean(value: string): boolean {
   const normalized = value.trim().toLowerCase();
@@ -41,10 +54,20 @@ function normalizeHeader(value: string): string {
   return value.trim().toLowerCase();
 }
 
+function resolveHeader(
+  rawHeader: string,
+): (typeof SHEET_HEADERS)[number] | null {
+  const normalized = normalizeHeader(rawHeader);
+  if ((SHEET_HEADERS as readonly string[]).includes(normalized)) {
+    return normalized as (typeof SHEET_HEADERS)[number];
+  }
+  return HEADER_ALIASES[normalized] ?? null;
+}
+
 function rowToTool(
   row: string[],
-  columnIndex: Record<string, number>,
-): SystemTool | null {
+  columnIndex: Partial<Record<(typeof SHEET_HEADERS)[number], number>>,
+): Tool | null {
   const get = (key: (typeof SHEET_HEADERS)[number]) => {
     const index = columnIndex[key];
     if (index === undefined) return "";
@@ -60,114 +83,60 @@ function rowToTool(
     tool_id: toolId,
     tool_name: toolName,
     description: get("description"),
-    category: get("category") || "未分類",
-    tags: parseTags(get("tags")),
-    image_url: get("image_url"),
+    thumbnail_url: get("thumbnail_url"),
     tool_url: get("tool_url"),
-    document_url: get("document_url"),
-    credit_cost: parseNumber(get("credit_cost"), 0),
+    manual_url: get("manual_url"),
+    required_credit: parseNumber(get("required_credit"), 0),
     is_active: parseBoolean(get("is_active")),
+    category: get("category") || "未分類",
     sort_order: parseNumber(get("sort_order"), 0),
+    button_text: get("button_text") || "使用する",
+    tags: parseTags(get("tags")),
+    created_at: get("created_at"),
   };
-}
-
-async function getFirstSheetTitle(
-  spreadsheetId: string,
-  apiKey: string,
-): Promise<string | null> {
-  const url = new URL(
-    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`,
-  );
-  url.searchParams.set("fields", "sheets.properties.title");
-  url.searchParams.set("key", apiKey);
-
-  const response = await fetch(url.toString(), {
-    next: { revalidate: 300 },
-  });
-
-  if (!response.ok) return null;
-
-  const data = (await response.json()) as {
-    sheets?: { properties?: { title?: string } }[];
-  };
-
-  return data.sheets?.[0]?.properties?.title ?? null;
 }
 
 export type SystemToolLookupResult =
-  | { status: "found"; tool: SystemTool }
-  | { status: "inactive"; tool: SystemTool }
+  | { status: "found"; tool: Tool }
+  | { status: "inactive"; tool: Tool }
   | { status: "not_found" }
   | { status: "error"; error: string };
 
-async function fetchParsedSystemTools(): Promise<SystemToolsFetchResult> {
-  const apiKey = process.env.GOOGLE_SHEETS_API_KEY;
-  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+async function fetchParsedTools(): Promise<ToolsFetchResult> {
+  const spreadsheetId =
+    process.env.GOOGLE_SHEET_ID?.trim() || DEFAULT_GOOGLE_SHEET_ID;
 
-  if (!apiKey || !spreadsheetId) {
-    return {
-      success: false,
-      error:
-        "Google Sheets の環境変数が未設定です。GOOGLE_SHEETS_API_KEY と GOOGLE_SHEET_ID を確認してください。",
-    };
+  const csvResult = await fetchSpreadsheetCsvRows(spreadsheetId);
+  if (!csvResult.success) {
+    return { success: false, error: csvResult.error };
   }
 
-  try {
-    const sheetTitle =
-      process.env.GOOGLE_SHEET_RANGE?.split("!")[0] ??
-      (await getFirstSheetTitle(spreadsheetId, apiKey)) ??
-      "Sheet1";
-
-    const range = process.env.GOOGLE_SHEET_RANGE ?? `${sheetTitle}!A:K`;
-    const valuesUrl = new URL(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`,
-    );
-    valuesUrl.searchParams.set("key", apiKey);
-
-    const response = await fetch(valuesUrl.toString(), {
-      next: { revalidate: 60 },
-    });
-
-    if (!response.ok) {
-      const body = await response.text();
-      return {
-        success: false,
-        error: `Google Sheets からデータを取得できませんでした。（${response.status}）${body ? ` ${body.slice(0, 120)}` : ""}`,
-      };
-    }
-
-    const payload = (await response.json()) as { values?: string[][] };
-    const rows = payload.values ?? [];
-
-    if (rows.length < 2) {
-      return { success: true, tools: [] };
-    }
-
-    const headerRow = rows[0].map(normalizeHeader);
-    const columnIndex: Record<string, number> = {};
-
-    SHEET_HEADERS.forEach((header) => {
-      const index = headerRow.indexOf(header);
-      if (index >= 0) columnIndex[header] = index;
-    });
-
-    const tools = rows
-      .slice(1)
-      .map((row) => rowToTool(row, columnIndex))
-      .filter((tool): tool is SystemTool => tool !== null);
-
-    return { success: true, tools };
-  } catch {
-    return {
-      success: false,
-      error:
-        "システム一覧の取得中にエラーが発生しました。時間をおいて再度お試しください。",
-    };
+  const rows = csvResult.rows;
+  if (rows.length === 0) {
+    return { success: true, tools: [] };
   }
+
+  const headerRow = rows[0];
+  const columnIndex: Partial<Record<(typeof SHEET_HEADERS)[number], number>> =
+    {};
+
+  headerRow.forEach((cell, index) => {
+    const key = resolveHeader(cell);
+    if (key !== null && columnIndex[key] === undefined) {
+      columnIndex[key] = index;
+    }
+  });
+
+  const tools = rows
+    .slice(1)
+    .map((row) => rowToTool(row, columnIndex))
+    .filter((tool): tool is Tool => tool !== null);
+
+  return { success: true, tools };
 }
 
-export async function fetchActiveSystemTools(): Promise<SystemToolsFetchResult> {
-  const result = await fetchParsedSystemTools();
+export async function fetchActiveTools(): Promise<ToolsFetchResult> {
+  const result = await fetchParsedTools();
   if (!result.success) return result;
 
   return {
@@ -178,6 +147,11 @@ export async function fetchActiveSystemTools(): Promise<SystemToolsFetchResult> 
   };
 }
 
+/** @deprecated {@link fetchActiveTools} を使用 */
+export async function fetchActiveSystemTools(): Promise<ToolsFetchResult> {
+  return fetchActiveTools();
+}
+
 export async function findSystemToolById(
   toolId: string,
 ): Promise<SystemToolLookupResult> {
@@ -186,7 +160,7 @@ export async function findSystemToolById(
     return { status: "not_found" };
   }
 
-  const result = await fetchParsedSystemTools();
+  const result = await fetchParsedTools();
   if (!result.success) {
     return { status: "error", error: result.error };
   }
@@ -203,6 +177,11 @@ export async function findSystemToolById(
   return { status: "found", tool };
 }
 
+export function isValidRequiredCredit(requiredCredit: number): boolean {
+  return Number.isInteger(requiredCredit) && requiredCredit > 0;
+}
+
+/** @deprecated {@link isValidRequiredCredit} を使用 */
 export function isValidCreditCost(creditCost: number): boolean {
-  return Number.isInteger(creditCost) && creditCost > 0;
+  return isValidRequiredCredit(creditCost);
 }

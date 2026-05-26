@@ -4,16 +4,16 @@ import { useMemo, useState, useTransition } from "react";
 import { SystemCard } from "@/components/dashboard/system-card";
 import { SystemSearch } from "@/components/dashboard/system-search";
 import { createClient } from "@/lib/supabase";
-import type { SystemTool } from "@/types/system-tool";
+import type { Tool } from "@/types/tool";
 
 type SystemLibraryProps = {
-  tools: SystemTool[];
+  tools: Tool[];
   initialFavoriteIds: string[];
   userId: string;
   error: string | null;
 };
 
-function matchesQuery(tool: SystemTool, query: string): boolean {
+function matchesQuery(tool: Tool, query: string): boolean {
   const normalized = query.trim().toLowerCase();
   if (!normalized) return true;
 
@@ -26,7 +26,7 @@ function matchesQuery(tool: SystemTool, query: string): boolean {
   );
 }
 
-function sortTools(tools: SystemTool[], favoriteIds: Set<string>): SystemTool[] {
+function sortTools(tools: Tool[], favoriteIds: Set<string>): Tool[] {
   return [...tools].sort((a, b) => {
     const aFav = favoriteIds.has(a.tool_id) ? 0 : 1;
     const bFav = favoriteIds.has(b.tool_id) ? 0 : 1;
