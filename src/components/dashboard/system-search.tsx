@@ -2,10 +2,15 @@
 
 import { useLanguage } from "@/contexts/LanguageContext";
 
+export type CategoryOption = {
+  value: string;
+  label: string;
+};
+
 type SystemSearchProps = {
   query: string;
   category: string;
-  categories: string[];
+  categories: CategoryOption[];
   onQueryChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
   resultCount: number;
@@ -45,8 +50,8 @@ export function SystemSearch({
           >
             <option value="">{translate("allCategories")}</option>
             {categories.map((item) => (
-              <option key={item} value={item}>
-                {item}
+              <option key={item.value} value={item.value}>
+                {item.label}
               </option>
             ))}
           </select>

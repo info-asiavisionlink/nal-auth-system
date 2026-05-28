@@ -1,13 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import type { ReactNode } from "react";
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { SystemLibraryLoading } from "@/components/dashboard/system-library-loading";
+import { SystemLibraryServer } from "@/components/dashboard/system-library-server";
 import { FakeUsageStats } from "@/components/common/FakeUsageStats";
 import { CreditModal } from "@/components/dashboard/CreditModal";
 import { DashboardLanguageSwitcher } from "@/components/dashboard/DashboardLanguageSwitcher";
 import { PasswordField } from "@/components/dashboard/PasswordField";
 import { NeonButton } from "@/components/ui/NeonButton";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { LanguageProvider, useLanguage } from "@/contexts/LanguageContext";
 import { SESSION_PASSWORD_KEY } from "@/lib/auth-errors";
 import { createClient } from "@/lib/supabase";
@@ -15,7 +17,6 @@ import type { Profile } from "@/types/database";
 
 type DashboardClientProps = {
   profile: Profile;
-  systemLibrary?: ReactNode;
 };
 
 function UserInfoCell({
@@ -37,14 +38,26 @@ function UserInfoCell({
   );
 }
 
-function DashboardClientContent({
-  profile,
-  systemLibrary,
-}: DashboardClientProps) {
+function DashboardLanguageLoading() {
+  return (
+    <div className="relative flex min-h-screen w-full items-center justify-center cyber-grid">
+      <div className="glass-panel flex flex-col items-center gap-4 rounded-2xl px-8 py-10">
+        <LoadingSpinner />
+        <p className="text-sm text-slate-600">読み込み中…</p>
+      </div>
+    </div>
+  );
+}
+
+function DashboardClientContent({ profile }: DashboardClientProps) {
   const router = useRouter();
-  const { translate } = useLanguage();
+  const { translate, ready } = useLanguage();
   const [modalOpen, setModalOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+
+  if (!ready) {
+    return <DashboardLanguageLoading />;
+  }
 
   async function handleLogout() {
     if (loggingOut) return;
@@ -131,7 +144,9 @@ function DashboardClientContent({
           </div>
         </section>
 
-        {systemLibrary}
+        <Suspense fallback={<SystemLibraryLoading />}>
+          <SystemLibraryServer userId={profile.id} profile={profile} />
+        </Suspense>
       </div>
 
       <CreditModal open={modalOpen} onClose={() => setModalOpen(false)} />
@@ -139,13 +154,14 @@ function DashboardClientContent({
   );
 }
 
-export function DashboardClient({ profile, systemLibrary }: DashboardClientProps) {
+export function DashboardClient({ profile }: DashboardClientProps) {
   return (
     <LanguageProvider
+      key={profile.id}
       initialLanguage={profile.preferred_language}
       userId={profile.id}
     >
-      <DashboardClientContent profile={profile} systemLibrary={systemLibrary} />
+      <DashboardClientContent profile={profile} />
     </LanguageProvider>
   );
 }

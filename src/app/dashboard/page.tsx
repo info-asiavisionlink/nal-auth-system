@@ -1,10 +1,7 @@
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
-import { SystemLibraryLoading } from "@/components/dashboard/system-library-loading";
-import { SystemLibraryServer } from "@/components/dashboard/system-library-server";
 import { isEmailConfirmed } from "@/lib/auth-email";
 import { parseLanguage } from "@/lib/i18n/constants";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
@@ -40,14 +37,5 @@ export default async function DashboardPage() {
     preferred_language: parseLanguage(profile.preferred_language),
   };
 
-  return (
-    <DashboardClient
-      profile={normalizedProfile}
-      systemLibrary={
-        <Suspense fallback={<SystemLibraryLoading />}>
-          <SystemLibraryServer userId={user.id} profile={normalizedProfile} />
-        </Suspense>
-      }
-    />
-  );
+  return <DashboardClient profile={normalizedProfile} />;
 }

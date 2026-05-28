@@ -9,7 +9,10 @@ import { openManual, openTool, type OpenToolUserContext } from "@/lib/open-tool"
 import type { Tool } from "@/types/tool";
 
 type SystemCardProps = {
+  /** 表示用（翻訳済みテキスト） */
   tool: Tool;
+  /** ツール起動用（元の URL・ID を保持） */
+  sourceTool: Tool;
   openToolUser: OpenToolUserContext;
   isFavorite: boolean;
   favoriteLoading: boolean;
@@ -18,6 +21,7 @@ type SystemCardProps = {
 
 export function SystemCard({
   tool,
+  sourceTool,
   openToolUser,
   isFavorite,
   favoriteLoading,
@@ -32,13 +36,13 @@ export function SystemCard({
   const primaryLabel = tool.button_text.trim() || translate("useTool");
 
   function handleOpenTool() {
-    if (!tool.tool_url.trim()) return;
-    openTool(tool, openToolUser);
+    if (!sourceTool.tool_url.trim()) return;
+    openTool(sourceTool, openToolUser);
   }
 
   function handleOpenManual() {
     if (!hasManual) return;
-    openManual(tool);
+    openManual(sourceTool);
   }
 
   return (
@@ -119,7 +123,7 @@ export function SystemCard({
           <NeonButton
             type="button"
             className={hasManual ? "w-full" : "w-full sm:col-span-2"}
-            disabled={!tool.tool_url.trim()}
+            disabled={!sourceTool.tool_url.trim()}
             onClick={handleOpenTool}
           >
             {primaryLabel}

@@ -17,6 +17,7 @@ import {
   subscribeGuestLanguage,
   writeGuestLanguage,
 } from "@/lib/i18n/get-language";
+import { resolveAuthenticatedLanguage } from "@/lib/i18n/resolve-profile-language";
 import { t, type TranslationKey, type TranslationParams } from "@/lib/i18n/translations";
 import type { Language } from "@/lib/i18n/types";
 import { createClient } from "@/lib/supabase";
@@ -33,6 +34,7 @@ const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 type LanguageProviderProps = {
   children: ReactNode;
+  /** SSR からのヒント（表示確定前は使用しない） */
   initialLanguage?: Language;
   userId?: string;
 };
@@ -42,8 +44,11 @@ export function LanguageProvider({
   initialLanguage = DEFAULT_LANGUAGE,
   userId,
 }: LanguageProviderProps) {
-  const [profileLanguageOverride, setProfileLanguageOverride] =
-    useState<Language | null>(null);
+  const isAuthenticated = Boolean(userId);
+  const [authenticatedLanguage, setAuthenticatedLanguage] = useState<Language | null>(
+    null,
+  );
+  const [ready, setReady] = useState(!isAuthenticated);
   const [updating, setUpdating] = useState(false);
 
   const guestLanguage = useSyncExternalStore(
@@ -52,33 +57,76 @@ export function LanguageProvider({
     () => DEFAULT_LANGUAGE,
   );
 
-  const profileLanguage = profileLanguageOverride ?? parseLanguage(initialLanguage);
-  const language = userId ? profileLanguage : guestLanguage;
+  useEffect(() => {
+    if (!userId) return;
+
+    let cancelled = false;
+
+    async function loadProfileLanguage() {
+      const supabase = createClient();
+      const activeUserId = userId;
+      if (!activeUserId) return;
+
+      const { language: resolved } = await resolveAuthenticatedLanguage(
+        supabase,
+        activeUserId,
+      );
+
+      if (cancelled) return;
+
+      setAuthenticatedLanguage(resolved);
+      writeGuestLanguage(resolved);
+      setReady(true);
+    }
+
+    void loadProfileLanguage();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  const language = isAuthenticated
+    ? (authenticatedLanguage ?? parseLanguage(initialLanguage))
+    : guestLanguage;
+
+  const displayLanguage = isAuthenticated && !ready ? DEFAULT_LANGUAGE : language;
 
   useEffect(() => {
-    document.documentElement.lang = language;
-  }, [language]);
-
-  const ready = true;
+    if (isAuthenticated && !ready) return;
+    document.documentElement.lang = displayLanguage;
+  }, [displayLanguage, isAuthenticated, ready]);
 
   const setLanguage = useCallback(
     async (lang: Language) => {
       const next = parseLanguage(lang);
+
+      if (!userId) {
+        writeGuestLanguage(next);
+        return;
+      }
+
+      setAuthenticatedLanguage(next);
       writeGuestLanguage(next);
-
-      if (!userId) return;
-
-      setProfileLanguageOverride(next);
       setUpdating(true);
+
       try {
         const supabase = createClient();
-        const { error } = await supabase
+        const { error: profileError } = await supabase
           .from("profiles")
           .update({ preferred_language: next })
           .eq("id", userId);
 
-        if (error) {
-          console.error("[LanguageProvider] preferred_language update failed", error);
+        if (profileError) {
+          console.error("[LanguageProvider] preferred_language update failed", profileError);
+        }
+
+        const { error: metadataError } = await supabase.auth.updateUser({
+          data: { preferred_language: next },
+        });
+
+        if (metadataError) {
+          console.warn("[LanguageProvider] auth metadata update failed", metadataError);
         }
       } finally {
         setUpdating(false);
@@ -88,19 +136,20 @@ export function LanguageProvider({
   );
 
   const translate = useCallback(
-    (key: TranslationKey, params?: TranslationParams) => t(key, language, params),
-    [language],
+    (key: TranslationKey, params?: TranslationParams) =>
+      t(key, displayLanguage, params),
+    [displayLanguage],
   );
 
   const value = useMemo(
     () => ({
-      language,
+      language: displayLanguage,
       ready,
       updating,
       setLanguage,
       translate,
     }),
-    [language, ready, updating, setLanguage, translate],
+    [displayLanguage, ready, updating, setLanguage, translate],
   );
 
   return (

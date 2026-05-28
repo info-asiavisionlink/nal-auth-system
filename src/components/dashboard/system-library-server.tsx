@@ -1,7 +1,5 @@
 import { SystemLibrary } from "@/components/dashboard/system-library";
-import { fetchUserFavoriteToolIds } from "@/lib/favorite-tools";
-import { fetchActiveTools } from "@/lib/google-sheets";
-import { toOpenToolUserContext } from "@/lib/open-tool";
+import { loadSystemLibraryData } from "@/lib/dashboard/load-system-library";
 import type { Profile } from "@/types/database";
 
 type SystemLibraryServerProps = {
@@ -9,24 +7,23 @@ type SystemLibraryServerProps = {
   profile: Profile;
 };
 
+/**
+ * LanguageProvider 配下で描画すること（DashboardClient 内から呼ぶ）。
+ */
 export async function SystemLibraryServer({
   userId,
   profile,
 }: SystemLibraryServerProps) {
-  const openToolUser = toOpenToolUserContext(profile);
-  const [toolsResult, favoriteIds] = await Promise.all([
-    fetchActiveTools(),
-    fetchUserFavoriteToolIds(userId),
-  ]);
+  const library = await loadSystemLibraryData(userId, profile);
 
   return (
     <section className="glass-panel w-full min-w-0 max-w-full p-5 sm:p-8">
       <SystemLibrary
-        tools={toolsResult.success ? toolsResult.tools : []}
-        initialFavoriteIds={favoriteIds}
+        originalTools={library.tools}
+        initialFavoriteIds={library.initialFavoriteIds}
         userId={userId}
-        openToolUser={openToolUser}
-        error={toolsResult.success ? null : toolsResult.error}
+        openToolUser={library.openToolUser}
+        error={library.error}
       />
     </section>
   );

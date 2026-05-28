@@ -13,14 +13,22 @@ export async function saveSignupPreferredLanguage(
 ): Promise<void> {
   writeGuestLanguage(language);
 
+  const { error: metadataError } = await supabase.auth.updateUser({
+    data: { preferred_language: language },
+  });
+
+  if (metadataError) {
+    console.warn("[signup] auth metadata preferred_language skipped", metadataError.message);
+  }
+
   if (!userId) return;
 
-  const { error } = await supabase
+  const { error: updateError } = await supabase
     .from("profiles")
     .update({ preferred_language: language })
     .eq("id", userId);
 
-  if (error) {
-    console.warn("[signup] preferred_language update skipped", error.message);
+  if (updateError) {
+    console.warn("[signup] profiles.preferred_language update skipped", updateError.message);
   }
 }
