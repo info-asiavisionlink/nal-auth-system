@@ -1,9 +1,12 @@
+import type { Language } from "@/lib/i18n/types";
+
 export type Profile = {
   id: string;
   username: string;
   email: string;
   credit: number;
   created_at: string;
+  preferred_language: Language;
 };
 
 export type Tool = {

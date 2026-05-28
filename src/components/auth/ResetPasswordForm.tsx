@@ -7,35 +7,38 @@ import { AuthLayout } from "@/components/auth/AuthLayout";
 import { PasswordInputField } from "@/components/ui/PasswordInputField";
 import { NeonButton } from "@/components/ui/NeonButton";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { t } from "@/lib/i18n/translations";
 import { createClient } from "@/lib/supabase";
 
 const MIN_PASSWORD_LENGTH = 6;
 
-function validatePasswords(
-  password: string,
-  confirmPassword: string,
-): string | null {
-  if (!password || !confirmPassword) {
-    return "新しいパスワードと確認用パスワードを入力してください。";
-  }
-  if (password.length < MIN_PASSWORD_LENGTH) {
-    return "パスワードは6文字以上で入力してください。";
-  }
-  if (password !== confirmPassword) {
-    return "パスワードが一致しません。";
-  }
-  return null;
-}
-
 export function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { translate, language } = useLanguage();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
   const [initializing, setInitializing] = useState(true);
+
+  function validatePasswords(
+    nextPassword: string,
+    nextConfirmPassword: string,
+  ): string | null {
+    if (!nextPassword || !nextConfirmPassword) {
+      return translate("resetPasswordRequired");
+    }
+    if (nextPassword.length < MIN_PASSWORD_LENGTH) {
+      return translate("resetPasswordMinLength");
+    }
+    if (nextPassword !== nextConfirmPassword) {
+      return translate("resetPasswordMismatch");
+    }
+    return null;
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -48,10 +51,7 @@ export function ResetPasswordForm() {
 
       if (authError) {
         if (!cancelled) {
-          setError(
-            errorDescription ??
-              "パスワード再設定リンクが無効です。再度お試しください。",
-          );
+          setError(errorDescription ?? t("resetLinkInvalid", language));
           setInitializing(false);
         }
         return;
@@ -96,7 +96,7 @@ export function ResetPasswordForm() {
       cancelled = true;
       subscription.unsubscribe();
     };
-  }, [searchParams]);
+  }, [searchParams, language]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -126,7 +126,7 @@ export function ResetPasswordForm() {
       router.push("/login?reset=success");
       router.refresh();
     } catch {
-      setError("通信エラーが発生しました。時間をおいて再度お試しください。");
+      setError(translate("networkError"));
     } finally {
       setLoading(false);
     }
@@ -134,15 +134,15 @@ export function ResetPasswordForm() {
 
   return (
     <AuthLayout
-      title="新しいパスワード"
-      subtitle="新しいパスワードを入力して保存してください"
+      title={translate("resetPasswordTitle")}
+      subtitle={translate("resetPasswordSubtitle")}
       footer={
         <p className="text-slate-600">
           <Link
             href="/login"
             className="font-semibold text-sky-600 hover:text-sky-700"
           >
-            ログインに戻る
+            {translate("backToLogin")}
           </Link>
         </p>
       }
@@ -157,35 +157,34 @@ export function ResetPasswordForm() {
             className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"
             role="alert"
           >
-            {error ??
-              "パスワード再設定リンクが無効または期限切れです。再度メール送信からお試しください。"}
+            {error ?? translate("resetLinkExpired")}
           </p>
           <Link
             href="/forgot-password"
             className="inline-block text-sm font-semibold text-sky-600 hover:text-sky-700"
           >
-            再設定メールを送信する
+            {translate("resendResetEmail")}
           </Link>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           <PasswordInputField
-            label="新しいパスワード"
+            label={translate("newPassword")}
             name="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="6文字以上"
+            placeholder={translate("passwordPlaceholder")}
             autoComplete="new-password"
             minLength={MIN_PASSWORD_LENGTH}
             required
             disabled={loading}
           />
           <PasswordInputField
-            label="パスワード（確認）"
+            label={translate("passwordConfirm")}
             name="confirmPassword"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            placeholder="もう一度入力"
+            placeholder={translate("passwordConfirmPlaceholder")}
             autoComplete="new-password"
             minLength={MIN_PASSWORD_LENGTH}
             required
@@ -207,7 +206,7 @@ export function ResetPasswordForm() {
             loading={loading}
             disabled={loading}
           >
-            保存
+            {translate("resetPasswordSubmit")}
           </NeonButton>
         </form>
       )}

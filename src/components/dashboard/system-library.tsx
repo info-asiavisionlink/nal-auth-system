@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { SystemCard } from "@/components/dashboard/system-card";
 import { SystemSearch } from "@/components/dashboard/system-search";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { createClient } from "@/lib/supabase";
 import type { OpenToolUserContext } from "@/lib/open-tool";
 import type { Tool } from "@/types/tool";
@@ -44,6 +45,7 @@ export function SystemLibrary({
   openToolUser,
   error,
 }: SystemLibraryProps) {
+  const { language, translate } = useLanguage();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [favoriteIds, setFavoriteIds] = useState(
@@ -68,6 +70,11 @@ export function SystemLibrary({
   const displayTools = useMemo(
     () => sortTools(filteredTools, favoriteIds),
     [filteredTools, favoriteIds],
+  );
+
+  const openToolUserWithLang = useMemo<OpenToolUserContext>(
+    () => ({ ...openToolUser, lang: language }),
+    [openToolUser, language],
   );
 
   async function handleToggleFavorite(toolId: string) {
@@ -114,9 +121,7 @@ export function SystemLibrary({
         });
       }
     } catch {
-      setFavoriteError(
-        "お気に入りの更新に失敗しました。時間をおいて再度お試しください。",
-      );
+      setFavoriteError(translate("favoriteUpdateFailed"));
     } finally {
       setPendingToolId(null);
     }
@@ -135,6 +140,9 @@ export function SystemLibrary({
 
   return (
     <div className="space-y-6">
+      <h2 className="accent-heading mb-2 border-b border-sky-100 pb-3 text-lg font-semibold">
+        {translate("systemLibrary")}
+      </h2>
       <SystemSearch
         query={query}
         category={category}
@@ -156,7 +164,7 @@ export function SystemLibrary({
 
       {displayTools.length === 0 ? (
         <p className="rounded-xl border border-sky-100 bg-sky-50/60 px-4 py-6 text-center text-sm text-slate-600">
-          条件に一致するツールがありません。
+          {translate("noMatchingTools")}
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -164,7 +172,7 @@ export function SystemLibrary({
             <SystemCard
               key={tool.tool_id}
               tool={tool}
-              openToolUser={openToolUser}
+              openToolUser={openToolUserWithLang}
               isFavorite={favoriteIds.has(tool.tool_id)}
               favoriteLoading={pendingToolId === tool.tool_id}
               onToggleFavorite={handleToggleFavorite}

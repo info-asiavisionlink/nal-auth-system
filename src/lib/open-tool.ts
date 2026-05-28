@@ -1,3 +1,5 @@
+import { parseLanguage } from "@/lib/i18n/constants";
+import type { Language } from "@/lib/i18n/types";
 import type { Tool } from "@/types/tool";
 
 /** 「使用する」CTA でツールへ渡すユーザー情報（query parameter） */
@@ -6,6 +8,7 @@ export type OpenToolUserContext = {
   username: string;
   email: string;
   remaining_credit: number;
+  lang: Language;
 };
 
 type ProfileLike = {
@@ -13,6 +16,7 @@ type ProfileLike = {
   username?: string | null;
   email?: string | null;
   credit?: number | null;
+  preferred_language?: string | null;
 };
 
 export function toOpenToolUserContext(profile: ProfileLike): OpenToolUserContext {
@@ -21,6 +25,7 @@ export function toOpenToolUserContext(profile: ProfileLike): OpenToolUserContext
     username: profile.username ?? "",
     email: profile.email ?? "",
     remaining_credit: profile.credit ?? 0,
+    lang: parseLanguage(profile.preferred_language),
   };
 }
 
@@ -42,6 +47,7 @@ function appendUserQueryParams(
     params.set("username", user.username);
     params.set("email", user.email);
     params.set("remaining_credit", String(user.remaining_credit));
+    params.set("lang", user.lang);
 
     url.search = params.toString();
     return url.toString();
@@ -52,7 +58,7 @@ function appendUserQueryParams(
 
 /**
  * ツールを新しいタブで開く。
- * tool_url に user_id / username / email / remaining_credit を付与する。
+ * tool_url に user_id / username / email / remaining_credit / lang を付与する。
  */
 export function openTool(tool: Tool, user: OpenToolUserContext): void {
   const toolUrl = tool.tool_url.trim();
@@ -68,6 +74,7 @@ export function openTool(tool: Tool, user: OpenToolUserContext): void {
     username: user.username,
     email: user.email,
     remaining_credit: user.remaining_credit,
+    lang: user.lang,
   });
 
   window.open(generatedUrl, "_blank", "noopener,noreferrer");

@@ -1,5 +1,10 @@
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
+import { AuthLanguageProvider } from "@/components/providers/AuthLanguageProvider";
 
 export default function ForgotPasswordPage() {
-  return <ForgotPasswordForm />;
+  return (
+    <AuthLanguageProvider>
+      <ForgotPasswordForm />
+    </AuthLanguageProvider>
+  );
 }

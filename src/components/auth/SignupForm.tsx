@@ -4,12 +4,18 @@ import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { SignupErrorPanel } from "@/components/auth/SignupErrorPanel";
+import { LanguageSelect } from "@/components/common/LanguageSelect";
 import { InputField } from "@/components/ui/InputField";
 import { PasswordInputField } from "@/components/ui/PasswordInputField";
 import { NeonButton } from "@/components/ui/NeonButton";
-import { validateSignupInput } from "@/lib/auth-errors";
 import {
-  formatAuthErrorDisplay,
+  mapSignupErrorMessage,
+  validateSignupInputLocalized,
+} from "@/lib/i18n/get-language";
+import { saveSignupPreferredLanguage } from "@/lib/i18n/save-signup-language";
+import { t } from "@/lib/i18n/translations";
+import type { Language } from "@/lib/i18n/types";
+import {
   formatGenericDisplay,
   type SignupDisplayError,
 } from "@/lib/signup-debug";
@@ -20,6 +26,7 @@ export function SignupForm() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [preferredLanguage, setPreferredLanguage] = useState<Language>("ja");
   const [displayError, setDisplayError] = useState<SignupDisplayError | null>(
     null,
   );
@@ -33,13 +40,21 @@ export function SignupForm() {
 
     console.log("[signup] 入力値チェック開始");
 
-    const validationError = validateSignupInput(username, email, password);
+    const validationError = validateSignupInputLocalized(
+      username,
+      email,
+      password,
+      preferredLanguage,
+    );
     if (validationError) {
       console.log("[signup] 入力値チェック失敗:", validationError);
       setEmailSent(false);
       setEmailAlreadyExists(false);
       setDisplayError(
-        formatGenericDisplay("入力内容を確認してください。", validationError),
+        formatGenericDisplay(
+          t("signupValidationFailed", preferredLanguage),
+          validationError,
+        ),
       );
       return;
     }
@@ -68,8 +83,8 @@ export function SignupForm() {
       if (!checkResponse.ok) {
         setDisplayError(
           formatGenericDisplay(
-            "登録に失敗しました。",
-            checkResult.error ?? "メールアドレスの確認に失敗しました。",
+            t("signupFailed", preferredLanguage),
+            checkResult.error ?? t("signupEmailCheckFailed", preferredLanguage),
           ),
         );
         return;
@@ -91,6 +106,7 @@ export function SignupForm() {
           emailRedirectTo,
           data: {
             username: trimmedUsername,
+            preferred_language: preferredLanguage,
           },
         },
       });
@@ -100,7 +116,16 @@ export function SignupForm() {
       if (error) {
         console.error("SIGNUP_ERROR", error);
         console.log("[signup] signUp 失敗");
-        setDisplayError(formatAuthErrorDisplay(error as AuthError));
+        const authMessage = mapSignupErrorMessage(
+          (error as AuthError).message,
+          preferredLanguage,
+        );
+        setDisplayError(
+          formatGenericDisplay(
+            t("signupFailed", preferredLanguage),
+            authMessage,
+          ),
+        );
         return;
       }
 
@@ -109,14 +134,20 @@ export function SignupForm() {
         hasSession: Boolean(data.session),
       });
 
+      await saveSignupPreferredLanguage(
+        supabase,
+        data.user?.id,
+        preferredLanguage,
+      );
+
       setEmailSent(true);
     } catch (error) {
       console.error("SIGNUP_UNEXPECTED_ERROR", error);
       const message =
-        error instanceof Error ? error.message : "不明なエラーが発生しました";
+        error instanceof Error ? error.message : "Unknown error";
       setDisplayError(
         formatGenericDisplay(
-          "登録に失敗しました。",
+          t("signupFailed", preferredLanguage),
           message,
           error instanceof Error ? error.stack : undefined,
         ),
@@ -128,23 +159,30 @@ export function SignupForm() {
 
   return (
     <AuthLayout
-      title="新規登録"
-      subtitle="アカウントを作成してダッシュボードへ"
+      title={t("signupTitle", preferredLanguage)}
+      subtitle={t("signupSubtitle", preferredLanguage)}
       footer={
         <p className="text-slate-600">
-          すでにアカウントをお持ちですか？{" "}
+          {t("hasAccount", preferredLanguage)}{" "}
           <Link
             href="/login"
             className="font-semibold text-sky-600 hover:text-sky-700"
           >
-            ログイン
+            {t("login", preferredLanguage)}
           </Link>
         </p>
       }
     >
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+        <LanguageSelect
+          value={preferredLanguage}
+          onChange={setPreferredLanguage}
+          label={t("language", preferredLanguage)}
+          disabled={loading || emailSent || emailAlreadyExists}
+          id="signup-language-select"
+        />
         <InputField
-          label="ユーザー名"
+          label={t("username", preferredLanguage)}
           name="username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
@@ -154,7 +192,7 @@ export function SignupForm() {
           disabled={loading || emailSent || emailAlreadyExists}
         />
         <InputField
-          label="メールアドレス"
+          label={t("email", preferredLanguage)}
           name="email"
           type="email"
           value={email}
@@ -165,11 +203,11 @@ export function SignupForm() {
           disabled={loading || emailSent || emailAlreadyExists}
         />
         <PasswordInputField
-          label="パスワード"
+          label={t("password", preferredLanguage)}
           name="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="6文字以上"
+          placeholder={t("passwordPlaceholder", preferredLanguage)}
           autoComplete="new-password"
           minLength={6}
           required
@@ -182,13 +220,13 @@ export function SignupForm() {
             role="alert"
           >
             <p className="font-semibold">
-              このメールアドレスはすでに登録されています。ログインしてください。
+              {t("signupEmailExists", preferredLanguage)}
             </p>
             <Link
               href="/login"
               className="inline-block font-semibold text-sky-700 hover:text-sky-800"
             >
-              ログインページへ
+              {t("goToLogin", preferredLanguage)}
             </Link>
           </div>
         ) : null}
@@ -198,23 +236,27 @@ export function SignupForm() {
             className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-900"
             role="status"
           >
-            <p className="font-semibold">確認メールを送信しました</p>
-            <p className="leading-relaxed">
-              入力したメールアドレス宛に届いた認証リンクをクリックしてください。
+            <p className="font-semibold">
+              {t("emailSentTitle", preferredLanguage)}
             </p>
             <p className="leading-relaxed">
-              認証完了後、ログインページからログインできます。
+              {t("emailSentBody", preferredLanguage)}
+            </p>
+            <p className="leading-relaxed">
+              {t("emailSentAfterVerify", preferredLanguage)}
             </p>
             <Link
               href="/login"
               className="inline-block font-semibold text-sky-700 hover:text-sky-800"
             >
-              ログインページへ
+              {t("goToLogin", preferredLanguage)}
             </Link>
           </div>
         ) : null}
 
-        {displayError ? <SignupErrorPanel error={displayError} /> : null}
+        {displayError ? (
+          <SignupErrorPanel error={displayError} language={preferredLanguage} />
+        ) : null}
 
         {!emailSent && !emailAlreadyExists ? (
           <NeonButton
@@ -223,7 +265,7 @@ export function SignupForm() {
             loading={loading}
             disabled={loading}
           >
-            アカウントを作成
+            {t("signupSubmit", preferredLanguage)}
           </NeonButton>
         ) : null}
       </form>

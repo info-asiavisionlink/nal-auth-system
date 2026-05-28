@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { parseLanguage } from "@/lib/i18n/constants";
 import { findSystemToolById } from "@/lib/google-sheets";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import {
@@ -192,6 +193,14 @@ export async function POST(request: Request) {
       );
     }
 
+    const { data: languageProfile } = await supabase
+      .from("profiles")
+      .select("preferred_language")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const preferredLang = parseLanguage(languageProfile?.preferred_language);
+
     const issued = await createToolAccessToken(user.id, toolKey);
 
     if (!issued.success) {
@@ -216,6 +225,7 @@ export async function POST(request: Request) {
       redirectUrl = appendAccessTokenToUrl(
         normalizedSheetToolUrl,
         issued.token,
+        preferredLang,
       );
     } catch (error) {
       const message =

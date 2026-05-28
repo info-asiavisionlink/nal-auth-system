@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CheckoutErrorPanel } from "@/components/dashboard/CheckoutErrorPanel";
 import { PolicyDisclosure } from "@/components/dashboard/PolicyDisclosure";
 import { NeonButton } from "@/components/ui/NeonButton";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   CANCEL_POLICY_ITEMS,
   TERMS_OF_SERVICE_ITEMS,
@@ -27,6 +28,7 @@ type CreditModalProps = {
 };
 
 export function CreditModal({ open, onClose }: CreditModalProps) {
+  const { translate } = useLanguage();
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [cancelAccepted, setCancelAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -140,34 +142,36 @@ export function CreditModal({ open, onClose }: CreditModalProps) {
     >
       <div className="glass-panel box-border max-h-[90vh] w-full min-w-0 max-w-lg overflow-x-hidden overflow-y-auto rounded-2xl p-5 sm:p-8">
         <h2 id="credit-modal-title" className="accent-heading text-xl font-bold">
-          クレジット追加
+          {translate("creditModalTitle")}
         </h2>
 
         <div className="my-6 rounded-xl border border-sky-100 bg-white p-5 text-center shadow-sm">
           <p className="text-2xl font-bold text-slate-900">
-            {CREDIT_PACK_AMOUNT.toLocaleString()}円
+            {translate("creditPriceYen", {
+              amount: CREDIT_PACK_AMOUNT.toLocaleString(),
+            })}
           </p>
           <p className="my-3 font-medium text-sky-600">↓</p>
           <p className="text-lg font-semibold text-sky-700">
-            {CREDIT_PACK_ADD.toLocaleString()} Credit 追加
+            {translate("creditPackAdd", {
+              amount: CREDIT_PACK_ADD.toLocaleString(),
+            })}
           </p>
         </div>
 
         <ul className="mb-6 space-y-2 text-xs leading-relaxed text-slate-600">
-          <li>• 決済完了後、クレジットはアカウントに反映されます</li>
-          <li>
-            • デジタルサービスのため、決済完了後のキャンセル・返金は原則できません
-          </li>
-          <li>• 決済処理は Stripe を通じて安全に行われます</li>
+          <li>{translate("creditNoteReflect")}</li>
+          <li>{translate("creditNoteNoRefund")}</li>
+          <li>{translate("creditNoteStripe")}</li>
         </ul>
 
         <div className="space-y-4">
           <PolicyDisclosure
-            buttonLabel="利用規約を見る"
+            buttonLabel={translate("viewTerms")}
             items={TERMS_OF_SERVICE_ITEMS}
           />
           <PolicyDisclosure
-            buttonLabel="キャンセルポリシーを見る"
+            buttonLabel={translate("viewCancelPolicy")}
             items={CANCEL_POLICY_ITEMS}
           />
 
@@ -180,7 +184,7 @@ export function CreditModal({ open, onClose }: CreditModalProps) {
                 onChange={(e) => setTermsAccepted(e.target.checked)}
                 disabled={loading}
               />
-              <span className="min-w-0 break-words">利用規約を確認し、同意しました</span>
+              <span className="min-w-0 break-words">{translate("termsAgree")}</span>
             </label>
             <label className="flex min-w-0 cursor-pointer items-start gap-3">
               <input
@@ -190,7 +194,7 @@ export function CreditModal({ open, onClose }: CreditModalProps) {
                 onChange={(e) => setCancelAccepted(e.target.checked)}
                 disabled={loading}
               />
-              <span className="min-w-0 break-words">キャンセルポリシーを確認し、同意しました</span>
+              <span className="min-w-0 break-words">{translate("cancelPolicyAgree")}</span>
             </label>
           </div>
         </div>
@@ -205,7 +209,7 @@ export function CreditModal({ open, onClose }: CreditModalProps) {
             disabled={loading}
             className="w-full sm:w-auto"
           >
-            キャンセル
+            {translate("cancel")}
           </NeonButton>
           <NeonButton
             type="button"
@@ -214,7 +218,7 @@ export function CreditModal({ open, onClose }: CreditModalProps) {
             loading={loading}
             className="w-full sm:w-auto"
           >
-            決済へ進む
+            {translate("proceedToPayment")}
           </NeonButton>
         </div>
       </div>

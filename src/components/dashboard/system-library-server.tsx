@@ -21,9 +21,6 @@ export async function SystemLibraryServer({
 
   return (
     <section className="glass-panel w-full min-w-0 max-w-full p-5 sm:p-8">
-      <h2 className="accent-heading mb-6 border-b border-sky-100 pb-3 text-lg font-semibold">
-        システム一覧ライブラリ
-      </h2>
       <SystemLibrary
         tools={toolsResult.success ? toolsResult.tools : []}
         initialFavoriteIds={favoriteIds}

@@ -4,7 +4,9 @@ create table if not exists public.profiles (
   username text not null,
   email text not null,
   credit integer not null default 500,
-  created_at timestamp with time zone not null default now()
+  created_at timestamp with time zone not null default now(),
+  preferred_language text not null default 'ja'
+    check (preferred_language in ('ja', 'en', 'zh', 'th', 'ko'))
 );
 
 -- RLS 有効化

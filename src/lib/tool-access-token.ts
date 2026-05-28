@@ -34,7 +34,11 @@ export function normalizeToolUrl(toolUrl: string): string {
   return `https://${trimmed.replace(/^\/+/, "")}`;
 }
 
-export function appendAccessTokenToUrl(toolUrl: string, token: string): string {
+export function appendAccessTokenToUrl(
+  toolUrl: string,
+  token: string,
+  lang?: string,
+): string {
   if (!token.trim()) {
     throw new Error("access_token が空です。");
   }
@@ -42,6 +46,9 @@ export function appendAccessTokenToUrl(toolUrl: string, token: string): string {
   const normalized = normalizeToolUrl(toolUrl);
   const url = new URL(normalized);
   url.searchParams.set("access_token", token);
+  if (lang?.trim()) {
+    url.searchParams.set("lang", lang.trim());
+  }
   return url.toString();
 }
 

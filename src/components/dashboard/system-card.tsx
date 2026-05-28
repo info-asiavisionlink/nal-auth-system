@@ -3,6 +3,7 @@
 import { ExternalLink, Star } from "lucide-react";
 import { useState } from "react";
 import { NeonButton } from "@/components/ui/NeonButton";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { DEFAULT_THUMBNAIL_PATH } from "@/lib/constants";
 import { openManual, openTool, type OpenToolUserContext } from "@/lib/open-tool";
 import type { Tool } from "@/types/tool";
@@ -22,12 +23,13 @@ export function SystemCard({
   favoriteLoading,
   onToggleFavorite,
 }: SystemCardProps) {
+  const { translate } = useLanguage();
   const [imageError, setImageError] = useState(false);
   const thumbnailSrc =
     tool.thumbnail_url.trim() || DEFAULT_THUMBNAIL_PATH;
   const showImage = !imageError;
   const hasManual = Boolean(tool.manual_url.trim());
-  const primaryLabel = tool.button_text.trim() || "使用する";
+  const primaryLabel = tool.button_text.trim() || translate("useTool");
 
   function handleOpenTool() {
     if (!tool.tool_url.trim()) return;
@@ -59,7 +61,9 @@ export function SystemCard({
         )}
         <button
           type="button"
-          aria-label={isFavorite ? "お気に入りを解除" : "お気に入りに追加"}
+          aria-label={
+            isFavorite ? translate("removeFavorite") : translate("addFavorite")
+          }
           aria-pressed={isFavorite}
           disabled={favoriteLoading}
           onClick={() => onToggleFavorite(tool.tool_id)}
@@ -85,7 +89,7 @@ export function SystemCard({
           {tool.tool_name}
         </h3>
         <p className="mt-2 line-clamp-3 flex-1 text-sm leading-relaxed text-slate-600">
-          {tool.description || "説明はありません。"}
+          {tool.description || translate("noDescription")}
         </p>
 
         {tool.tags.length > 0 ? (
@@ -108,7 +112,7 @@ export function SystemCard({
               onClick={handleOpenManual}
               className="inline-flex min-h-11 items-center justify-center gap-1 rounded-xl border border-sky-200 bg-white px-4 py-2 text-sm font-semibold text-sky-700 shadow-sm transition hover:border-sky-300 hover:bg-sky-50"
             >
-              使用資料
+              {translate("manual")}
               <ExternalLink className="h-4 w-4" aria-hidden />
             </button>
           ) : null}

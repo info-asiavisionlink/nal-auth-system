@@ -5,8 +5,10 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { FakeUsageStats } from "@/components/common/FakeUsageStats";
 import { CreditModal } from "@/components/dashboard/CreditModal";
+import { DashboardLanguageSwitcher } from "@/components/dashboard/DashboardLanguageSwitcher";
 import { PasswordField } from "@/components/dashboard/PasswordField";
 import { NeonButton } from "@/components/ui/NeonButton";
+import { LanguageProvider, useLanguage } from "@/contexts/LanguageContext";
 import { SESSION_PASSWORD_KEY } from "@/lib/auth-errors";
 import { createClient } from "@/lib/supabase";
 import type { Profile } from "@/types/database";
@@ -35,11 +37,12 @@ function UserInfoCell({
   );
 }
 
-export function DashboardClient({
+function DashboardClientContent({
   profile,
   systemLibrary,
 }: DashboardClientProps) {
   const router = useRouter();
+  const { translate } = useLanguage();
   const [modalOpen, setModalOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -72,14 +75,15 @@ export function DashboardClient({
         <header className="mb-8 flex min-w-0 flex-col items-stretch gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 text-center sm:text-left">
             <p className="accent-heading text-xs font-semibold uppercase tracking-[0.2em]">
-              Dashboard
+              {translate("dashboardLabel")}
             </p>
             <h1 className="accent-heading mt-2 break-words text-2xl font-bold leading-snug sm:text-3xl">
-              ようこそ、{profile.username}
+              {translate("dashboardWelcome", { username: profile.username })}
             </h1>
           </div>
           <div className="flex w-full min-w-0 flex-col items-center gap-3 sm:w-auto sm:items-end">
             <FakeUsageStats className="w-full sm:w-auto" />
+            <DashboardLanguageSwitcher />
             <NeonButton
               type="button"
               variant="ghost"
@@ -88,18 +92,18 @@ export function DashboardClient({
               disabled={loggingOut}
               className="w-full shrink-0 sm:w-auto"
             >
-              ログアウト
+              {translate("logout")}
             </NeonButton>
           </div>
         </header>
 
         <section className="glass-panel mb-6 w-full min-w-0 max-w-full p-5 sm:p-8">
           <h2 className="accent-heading mb-5 border-b border-sky-100 pb-3 text-lg font-semibold">
-            ユーザー情報
+            {translate("userInfo")}
           </h2>
           <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-3 md:items-stretch">
-            <UserInfoCell label="ユーザー名" value={profile.username} />
-            <UserInfoCell label="メールアドレス" value={profile.email} />
+            <UserInfoCell label={translate("username")} value={profile.username} />
+            <UserInfoCell label={translate("email")} value={profile.email} />
             <PasswordField />
           </div>
         </section>
@@ -108,11 +112,13 @@ export function DashboardClient({
           <div className="flex min-w-0 flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 text-center sm:text-left">
               <p className="text-xs font-semibold uppercase tracking-wider text-sky-600">
-                現在のクレジット
+                {translate("currentCredit")}
               </p>
               <p className="mt-2 break-words text-3xl font-bold sm:text-4xl">
                 <span className="accent-heading">{profile.credit.toLocaleString()}</span>
-                <span className="ml-2 text-lg font-semibold text-amber-500">Credit</span>
+                <span className="ml-2 text-lg font-semibold text-amber-500">
+                  {translate("creditUnit")}
+                </span>
               </p>
             </div>
             <NeonButton
@@ -120,7 +126,7 @@ export function DashboardClient({
               onClick={() => setModalOpen(true)}
               className="w-full shrink-0 sm:w-auto"
             >
-              クレジット追加
+              {translate("addCredit")}
             </NeonButton>
           </div>
         </section>
@@ -130,5 +136,16 @@ export function DashboardClient({
 
       <CreditModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </div>
+  );
+}
+
+export function DashboardClient({ profile, systemLibrary }: DashboardClientProps) {
+  return (
+    <LanguageProvider
+      initialLanguage={profile.preferred_language}
+      userId={profile.id}
+    >
+      <DashboardClientContent profile={profile} systemLibrary={systemLibrary} />
+    </LanguageProvider>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { SESSION_PASSWORD_KEY } from "@/lib/auth-errors";
 
 function readSessionPassword(): string | null {
@@ -9,13 +10,14 @@ function readSessionPassword(): string | null {
 }
 
 export function PasswordField() {
+  const { translate } = useLanguage();
   const [revealed, setRevealed] = useState(false);
   const [password, setPassword] = useState<string | null>(null);
 
   const storedPassword = password ?? readSessionPassword();
 
   const displayValue = revealed
-    ? storedPassword ?? "（再ログイン後に表示）"
+    ? storedPassword ?? translate("passwordUnavailable")
     : "********";
 
   function handleToggle() {
@@ -27,12 +29,12 @@ export function PasswordField() {
   return (
     <div className="flex min-w-0 flex-col rounded-xl border border-sky-100 bg-white p-4 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-wider text-sky-600">
-        パスワード
+        {translate("password")}
       </p>
       <p className="mt-2 break-all font-mono text-sm text-slate-800">{displayValue}</p>
       {!storedPassword ? (
         <p className="mt-2 text-xs leading-relaxed text-slate-500">
-          再ログイン後のみ一時表示できます。
+          {translate("passwordReLoginHint")}
         </p>
       ) : null}
       <button
@@ -41,7 +43,7 @@ export function PasswordField() {
         disabled={!storedPassword}
         className="mt-3 w-fit rounded-lg border border-sky-200 bg-white px-3 py-2 text-xs font-semibold text-sky-700 transition hover:border-sky-300 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {revealed ? "隠す" : "確認する"}
+        {revealed ? translate("hidePassword") : translate("showPassword")}
       </button>
     </div>
   );

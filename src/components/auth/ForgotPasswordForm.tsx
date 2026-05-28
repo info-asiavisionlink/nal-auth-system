@@ -5,9 +5,11 @@ import { useState, type FormEvent } from "react";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { InputField } from "@/components/ui/InputField";
 import { NeonButton } from "@/components/ui/NeonButton";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { createClient } from "@/lib/supabase";
 
 export function ForgotPasswordForm() {
+  const { translate } = useLanguage();
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [emailSent, setEmailSent] = useState(false);
@@ -19,7 +21,7 @@ export function ForgotPasswordForm() {
 
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
-      setError("メールアドレスを入力してください。");
+      setError(translate("forgotEmailRequired"));
       return;
     }
 
@@ -42,7 +44,7 @@ export function ForgotPasswordForm() {
 
       setEmailSent(true);
     } catch {
-      setError("通信エラーが発生しました。時間をおいて再度お試しください。");
+      setError(translate("networkError"));
     } finally {
       setLoading(false);
     }
@@ -50,22 +52,22 @@ export function ForgotPasswordForm() {
 
   return (
     <AuthLayout
-      title="パスワード再設定"
-      subtitle="登録済みのメールアドレスに再設定用リンクを送信します"
+      title={translate("forgotPasswordTitle")}
+      subtitle={translate("forgotPasswordSubtitle")}
       footer={
         <p className="text-slate-600">
           <Link
             href="/login"
             className="font-semibold text-sky-600 hover:text-sky-700"
           >
-            ログインに戻る
+            {translate("backToLogin")}
           </Link>
         </p>
       }
     >
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <InputField
-          label="メールアドレス"
+          label={translate("email")}
           name="email"
           type="email"
           value={email}
@@ -81,7 +83,7 @@ export function ForgotPasswordForm() {
             className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
             role="status"
           >
-            再設定用メールを送信しました。メール内のリンクから新しいパスワードを設定してください。
+            {translate("forgotEmailSent")}
           </p>
         ) : null}
 
@@ -101,7 +103,7 @@ export function ForgotPasswordForm() {
             loading={loading}
             disabled={loading}
           >
-            再設定メールを送信
+            {translate("forgotPasswordSubmit")}
           </NeonButton>
         ) : null}
       </form>

@@ -7,22 +7,25 @@ import { AuthLayout } from "@/components/auth/AuthLayout";
 import { InputField } from "@/components/ui/InputField";
 import { PasswordInputField } from "@/components/ui/PasswordInputField";
 import { NeonButton } from "@/components/ui/NeonButton";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { isEmailConfirmed } from "@/lib/auth-email";
-import { mapLoginError, SESSION_PASSWORD_KEY } from "@/lib/auth-errors";
+import { SESSION_PASSWORD_KEY } from "@/lib/auth-errors";
+import { mapLoginErrorMessage } from "@/lib/i18n/get-language";
+import type { TranslationKey } from "@/lib/i18n/translations";
 import { createClient } from "@/lib/supabase";
 
-function getStatusMessage(searchParams: URLSearchParams): string | null {
+function getStatusMessageKey(searchParams: URLSearchParams): TranslationKey | null {
   if (searchParams.get("verified") === "1") {
-    return "メール認証が完了しました。ログインしてください。";
+    return "emailVerified";
   }
   if (searchParams.get("error") === "auth_callback_failed") {
-    return "メール認証に失敗しました。リンクの有効期限が切れている可能性があります。再度新規登録またはログインをお試しください。";
+    return "authCallbackFailed";
   }
   if (searchParams.get("error") === "email_not_confirmed") {
-    return "メール認証が完了していません。受信メールを確認してください。";
+    return "emailNotConfirmed";
   }
   if (searchParams.get("reset") === "success") {
-    return "パスワードを変更しました。新しいパスワードでログインしてください。";
+    return "resetSuccess";
   }
   return null;
 }
@@ -30,7 +33,8 @@ function getStatusMessage(searchParams: URLSearchParams): string | null {
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const statusMessage = getStatusMessage(searchParams);
+  const { translate, language } = useLanguage();
+  const statusMessageKey = getStatusMessageKey(searchParams);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +45,7 @@ export function LoginForm() {
     if (loading) return;
 
     if (!email.trim() || !password) {
-      setError("メールアドレスとパスワードを入力してください。");
+      setError(translate("loginRequiredFields"));
       return;
     }
 
@@ -56,14 +60,14 @@ export function LoginForm() {
       });
 
       if (signInError) {
-        setError(mapLoginError(signInError.message));
+        setError(mapLoginErrorMessage(signInError.message, language));
         return;
       }
 
       const user = data.user;
       if (!user || !isEmailConfirmed(user)) {
         await supabase.auth.signOut();
-        setError("メール認証が完了していません。受信メールを確認してください。");
+        setError(translate("emailNotConfirmed"));
         return;
       }
 
@@ -73,7 +77,7 @@ export function LoginForm() {
       router.push(redirectTo);
       router.refresh();
     } catch {
-      setError("通信エラーが発生しました。時間をおいて再度お試しください。");
+      setError(translate("networkError"));
     } finally {
       setLoading(false);
     }
@@ -81,32 +85,32 @@ export function LoginForm() {
 
   return (
     <AuthLayout
-      title="ログイン"
-      subtitle="登録済みのアカウントでサインイン"
+      title={translate("loginTitle")}
+      subtitle={translate("loginSubtitle")}
       footer={
         <p className="text-slate-600">
-          アカウントをお持ちでない方は{" "}
+          {translate("noAccount")}{" "}
           <Link
             href="/signup"
             className="font-semibold text-sky-600 hover:text-sky-700"
           >
-            新規登録
+            {translate("signup")}
           </Link>
         </p>
       }
     >
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-        {statusMessage ? (
+        {statusMessageKey ? (
           <p
             className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900"
             role="status"
           >
-            {statusMessage}
+            {translate(statusMessageKey)}
           </p>
         ) : null}
 
         <InputField
-          label="メールアドレス"
+          label={translate("email")}
           name="email"
           type="email"
           value={email}
@@ -117,7 +121,7 @@ export function LoginForm() {
           disabled={loading}
         />
         <PasswordInputField
-          label="パスワード"
+          label={translate("password")}
           name="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -141,7 +145,7 @@ export function LoginForm() {
           loading={loading}
           disabled={loading}
         >
-          ログイン
+          {translate("loginSubmit")}
         </NeonButton>
 
         <p className="text-center">
@@ -149,7 +153,7 @@ export function LoginForm() {
             href="/forgot-password"
             className="text-sm font-semibold text-sky-600 hover:text-sky-700"
           >
-            パスワードをお忘れですか？
+            {translate("forgotPasswordLink")}
           </Link>
         </p>
       </form>
