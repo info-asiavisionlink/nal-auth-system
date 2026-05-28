@@ -1,10 +1,19 @@
-/** 登録数の算出起点（ローカル日付） */
-export const REGISTRATION_START_DATE = new Date(2026, 4, 1);
-export const REGISTRATION_START_COUNT = 860;
-const MIN_DAILY_REGISTRATIONS = 8;
-const MAX_DAILY_REGISTRATIONS = 18;
+/** サービス開始日（実装時点の日付を固定） */
+export const START_DATE = "2026-05-29";
+
+export const REGISTRATION_START_COUNT = 50;
+const MIN_DAILY_REGISTRATIONS = 5;
+const MAX_DAILY_REGISTRATIONS = 8;
 
 const MS_PER_DAY = 86_400_000;
+
+function parseLocalDate(isoDate: string): Date {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+/** 登録数の算出起点（ローカル日付） */
+export const REGISTRATION_START_DATE = parseLocalDate(START_DATE);
 
 /** 日ごとの増加数を決定的に算出（同一日は全クライアントで同じ値） */
 function dailyRegistrationIncrement(dayIndex: number): number {
@@ -53,7 +62,7 @@ export function computeSessionCount(registeredCount: number, now: Date = new Dat
     range === 0 ? 0 : (dayAnchor * 11 + registeredCount * 3) % (range + 1);
   const anchor = minSessions + stableOffset;
 
-  const jitterSpan = Math.min(3, range);
+  const jitterSpan = Math.min(2, range);
   const jitter =
     jitterSpan === 0 ? 0 : Math.floor(Math.random() * (jitterSpan * 2 + 1)) - jitterSpan;
 
