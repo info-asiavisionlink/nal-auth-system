@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useState } from "react";
+import { FakeUsageStats } from "@/components/common/FakeUsageStats";
 import { CreditModal } from "@/components/dashboard/CreditModal";
 import { PasswordField } from "@/components/dashboard/PasswordField";
 import { NeonButton } from "@/components/ui/NeonButton";
@@ -68,7 +69,7 @@ export function DashboardClient({
       />
 
       <div className="relative z-10 mx-auto w-full min-w-0 max-w-7xl box-border px-4 py-8 sm:px-6 sm:py-12">
-        <header className="mb-8 flex min-w-0 flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <header className="mb-8 flex min-w-0 flex-col items-stretch gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 text-center sm:text-left">
             <p className="accent-heading text-xs font-semibold uppercase tracking-[0.2em]">
               Dashboard
@@ -77,16 +78,19 @@ export function DashboardClient({
               ようこそ、{profile.username}
             </h1>
           </div>
-          <NeonButton
-            type="button"
-            variant="ghost"
-            onClick={handleLogout}
-            loading={loggingOut}
-            disabled={loggingOut}
-            className="w-full shrink-0 sm:w-auto"
-          >
-            ログアウト
-          </NeonButton>
+          <div className="flex w-full min-w-0 flex-col items-center gap-3 sm:w-auto sm:items-end">
+            <FakeUsageStats className="w-full sm:w-auto" />
+            <NeonButton
+              type="button"
+              variant="ghost"
+              onClick={handleLogout}
+              loading={loggingOut}
+              disabled={loggingOut}
+              className="w-full shrink-0 sm:w-auto"
+            >
+              ログアウト
+            </NeonButton>
+          </div>
         </header>
 
         <section className="glass-panel mb-6 w-full min-w-0 max-w-full p-5 sm:p-8">

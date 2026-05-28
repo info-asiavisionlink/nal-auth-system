@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { FakeUsageStats } from "@/components/common/FakeUsageStats";
 
 type AuthLayoutProps = {
   title: string;
@@ -10,6 +11,7 @@ type AuthLayoutProps = {
 export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProps) {
   return (
     <div className="relative min-h-screen w-full max-w-[100vw] overflow-x-hidden cyber-grid">
+      <FakeUsageStats className="pointer-events-none absolute top-3 right-3 z-20 sm:top-4 sm:right-4" />
       <div
         className="pointer-events-none absolute -top-32 left-1/2 h-96 w-96 max-w-[100vw] -translate-x-1/2 rounded-full bg-sky-200/40 blur-3xl"
         aria-hidden
